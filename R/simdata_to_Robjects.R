@@ -2,25 +2,14 @@
 # coalescent simulators such as ms, msms, discoal.
 # #' lines are roxygen comments for documentation purposes.
 
-
-#' Add together two numbers
-#'
-#' @param x A number
-#' @param y A number
-#' @return The sum of \code{x} and \code{y}
-#' @examples
-#' add(1, 1)
-#' add(10, 1)
-
 #' Read in msms data,
 #'
 #' @param ms.file A string
 #' @param software A string
-#' @return The sum of \code{x} and \code{y}
+#' @return A list containing the simulation command 
+#' physical positions and genotype sparse matrix from \code{ms.file}
 #' @examples
-#' add(1, 1)
-#' add(10, 1)
-
+#' get.ms.output(ms.file, software="ms")
 get.ms.output <- function(ms.file = NA, software = msms) {
   if (!is.na(ms.file)) {
     raw <- scan(
@@ -34,10 +23,6 @@ get.ms.output <- function(ms.file = NA, software = msms) {
     # get locus length
     split.com <- strsplit(com, " ")[[1]]
     locusLength <- as.numeric(split.com[match("-r", split.com) + 2])
-    segsites = as.numeric(gsub(pattern = "segsites: ", 
-                               replacement = "", 
-                               raw[5]))
-    
     pos = as.numeric(strsplit(substr(raw[6], 
                                      12, 
                                      nchar(raw[6]) - 1), 
@@ -61,7 +46,6 @@ get.ms.output <- function(ms.file = NA, software = msms) {
       sparse = TRUE)
     ret_list = list(
       command = com,
-      segsites = segsites,
       pos = pos,
       geno = geno
     )
@@ -74,4 +58,5 @@ get.ms.output <- function(ms.file = NA, software = msms) {
 #     print("Usage: read.ms.output(txt), or read.ms.output(file=filename)")
 #     return()
 #   }
-  
+
+
