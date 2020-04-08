@@ -6,21 +6,95 @@
 
 using namespace Rcpp;
 
-// fastLm
-Rcpp::List fastLm(const arma::mat& X, const arma::colvec& y);
-RcppExport SEXP _phisweepr_fastLm(SEXP XSEXP, SEXP ySEXP) {
+// Arma_colSums
+arma::rowvec Arma_colSums(const arma::mat& x);
+RcppExport SEXP _phisweepr_Arma_colSums(SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
-    Rcpp::traits::input_parameter< const arma::colvec& >::type y(ySEXP);
-    rcpp_result_gen = Rcpp::wrap(fastLm(X, y));
+    Rcpp::traits::input_parameter< const arma::mat& >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(Arma_colSums(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// Sugar_colSums
+NumericVector Sugar_colSums(const NumericMatrix& x);
+RcppExport SEXP _phisweepr_Sugar_colSums(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(Sugar_colSums(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// Cpp_colSums
+NumericVector Cpp_colSums(const NumericMatrix& x);
+RcppExport SEXP _phisweepr_Cpp_colSums(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(Cpp_colSums(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// Arma_colSums_spM
+arma::sp_mat Arma_colSums_spM(const arma::sp_mat& x);
+RcppExport SEXP _phisweepr_Arma_colSums_spM(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::sp_mat& >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(Arma_colSums_spM(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// theta_from_pi
+double theta_from_pi(const IntegerVector& derivedcount, int nSam, int locusLength);
+RcppExport SEXP _phisweepr_theta_from_pi(SEXP derivedcountSEXP, SEXP nSamSEXP, SEXP locusLengthSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const IntegerVector& >::type derivedcount(derivedcountSEXP);
+    Rcpp::traits::input_parameter< int >::type nSam(nSamSEXP);
+    Rcpp::traits::input_parameter< int >::type locusLength(locusLengthSEXP);
+    rcpp_result_gen = Rcpp::wrap(theta_from_pi(derivedcount, nSam, locusLength));
+    return rcpp_result_gen;
+END_RCPP
+}
+// CbTable
+arma::sp_mat CbTable(int nSam);
+RcppExport SEXP _phisweepr_CbTable(SEXP nSamSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type nSam(nSamSEXP);
+    rcpp_result_gen = Rcpp::wrap(CbTable(nSam));
+    return rcpp_result_gen;
+END_RCPP
+}
+// subPop_freqSpec
+arma::sp_mat subPop_freqSpec(const arma::sp_mat& CbTable, int nSam);
+RcppExport SEXP _phisweepr_subPop_freqSpec(SEXP CbTableSEXP, SEXP nSamSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::sp_mat& >::type CbTable(CbTableSEXP);
+    Rcpp::traits::input_parameter< int >::type nSam(nSamSEXP);
+    rcpp_result_gen = Rcpp::wrap(subPop_freqSpec(CbTable, nSam));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_phisweepr_fastLm", (DL_FUNC) &_phisweepr_fastLm, 2},
+    {"_phisweepr_Arma_colSums", (DL_FUNC) &_phisweepr_Arma_colSums, 1},
+    {"_phisweepr_Sugar_colSums", (DL_FUNC) &_phisweepr_Sugar_colSums, 1},
+    {"_phisweepr_Cpp_colSums", (DL_FUNC) &_phisweepr_Cpp_colSums, 1},
+    {"_phisweepr_Arma_colSums_spM", (DL_FUNC) &_phisweepr_Arma_colSums_spM, 1},
+    {"_phisweepr_theta_from_pi", (DL_FUNC) &_phisweepr_theta_from_pi, 3},
+    {"_phisweepr_CbTable", (DL_FUNC) &_phisweepr_CbTable, 1},
+    {"_phisweepr_subPop_freqSpec", (DL_FUNC) &_phisweepr_subPop_freqSpec, 2},
     {NULL, NULL, 0}
 };
 

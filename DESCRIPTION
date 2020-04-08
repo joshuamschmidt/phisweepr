@@ -22,4 +22,6 @@ Imports:
     Matrix,
     RcppArmadillo
 RoxygenNote: 7.1.0
-LinkingTo: Rcpp, RcppArmadillo
+LinkingTo: 
+    Rcpp,
+    RcppArmadillo
