@@ -17,3 +17,15 @@ Arma_colSums_spM <- function(x) {
     .Call(`_phisweepr_Arma_colSums_spM`, x)
 }
 
+theta_from_pi <- function(derivedcount, nSam, locusLength) {
+    .Call(`_phisweepr_theta_from_pi`, derivedcount, nSam, locusLength)
+}
+
+CbTable <- function(nSam) {
+    .Call(`_phisweepr_CbTable`, nSam)
+}
+
+subPop_freqSpec <- function(CbTable, nSam) {
+    .Call(`_phisweepr_subPop_freqSpec`, CbTable, nSam)
+}
+
