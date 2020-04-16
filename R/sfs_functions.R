@@ -31,42 +31,45 @@ estimate_mu <- function(derived_allele_counts,genoObject) {
 # lapply(0:30, function(x) {sfs <- 1/(0:x); sfs[1] <- 0; sfs})
 #----------------
 # 2-d SFS functions
-get_jointSFS <- function(dataObject, testn1) {
-  n1_idxs <- which(dataObject$derived_allele_counts == testn1)
-  if(length(n1_idxs)==0) {
-    return(NA)
-  }
-  n2 <- dataObject$sample.size - testn1
-  # idx positions for sites at n1 frequency
-  partition_k_counts <- data.table()
-  for (i in 1:length(n1_idxs)) {
-    idx <- n1_idxs[i]
-    if (i==1) {
-      partition_k_counts <- data.table(groupInfo(genoMatrix,idx)[-idx,])[,.N,by=.(V1,V2)][order(V1,V2)]
+# formally called background_jointSFS()
+# R version of geting 2-d SFS
+#' Estimate the conditional 2d sfs from genotype matrix
+#'
+#' @param dataObject A list containing a sparse matrix genotypes
+#' @param n1Min An int
+#' @param n1Max An int
+#' @param monomorphic A string
+#' @return A data table of n1 k1 k2 n2 counts derived from \code{genotype_matrix}
+#' @examples
+#' estimate_mu(dataObject, 9, 21, FALSE)
+
+get_two_dimensionalSFS <- function(dataObject,
+                                   n1Min,
+                                   n1Max,
+                                   monomorphic){
+  # define output matrix
+  # outMatrix <- Matrix::Matrix(0,nrow = dataObject$sample.size+1, ncol =  dataObject$sample.size+1,sparse = F)
+  derived_allele_counts <- Matrix::diff(dataObject$genotypes@p)
+  # how many sits are due to outgroup (monomorphic but in the genoMatrix)
+  n.no.derived <- length(which(derived_allele_counts == 0))
+  # therefore the number of monomorphic positions is...
+  n.monomorphic <- dataObject$phys_pos[length(dataObject$phys_pos)] - dataObject$phys_pos[1] - length(derived_allele_counts) + n.no.derived
+  allDT <- data.table()
+  for(i in seq_along(derived_allele_counts)) {
+    n1 <- derived_allele_counts[i] 
+    if (n1 >= n1Min && n1 <= n1Max) {
+      n2 <- dataObject$sample.size - n1
+      rowslice <- which(dataObject$genotypes[,i]!=0)
+      k1 <- factor(diff(dataObject$genotypes[rowslice,]@p),levels = 0:dataObject$sample.size)
+      k2 <- factor(diff(dataObject$genotypes[-rowslice,]@p),levels = 0:dataObject$sample.size)
+      # how many positions were monomorphic? add?
+      # also realise if simuated with outgroup, can get k1 0 k2 0 positions.
+      kDT <- unique(data.table(n1,k1,k2)[!i,][,count:= .N, by=.(n1,k1,k2)])
+      kDT <- kDT[!(k1==0 & k2==0)]
+      kDT <- rbindlist(list(kDT,data.table(n1,k1=0,k2=0,count=n.monomorphic)))
+      allDT <- rbindlist(list(allDT,kDT))
     }
-    else {
-      partition_k_counts <- rbindlist(list(partition_k_counts, data.table(groupInfo(genoMatrix,idx)[-idx,])[,.N,by=.(V1,V2)][order(V1,V2)]))
-    }
   }
-  names(partition_k_counts) <- c("k1","k2","N")
-  partition_k_counts <- partition_k_counts[,.(N=sum(N)),by=.(k1,k2)][order(k1,k2)]
-  #missing entries in the joint sfs?
-  setkey(partition_k_counts,k1,k2)
-  all_possibleSFS <- data.table(expand.grid(x= 0:testn1, y=0:n2))[,.(k1=x,k2=y)][order(k1,k2)]
-  setkey(all_possibleSFS,k1,k2)
-  partition_k_counts <- partition_k_counts[all_possibleSFS]
-  partition_k_counts[N %in% NA,N:=0]
-  partition_k_counts[,`:=`(n1=eval(testn1),n2=eval(n2))]
-  # scale
-  partition_k_counts[,pr:=N/sum(N)]
-  # standardising.
-  # we have looped over x = length(testn1) positions.
-  # thus the total number of variants in the 2-d SFS is # polymorphic
-  # * x. so actually unique poly count is partition_k_counts[,sum(N)]/length(n1_idxs).
-  # so we multiply proportions to partition_k_counts[,sum(N)]/length(n1_idxs)/locusLength * pr
-  partition_k_counts[,scaledpr:=pr*(partition_k_counts[,sum(N)]/length(n1_idxs)/locusLength)]
-  # scaledpr for k1=0 and k2=0, will  be same lookupo for k1=n1 and k2=n2
-  ks0 <- 1-partition_k_counts[!(k1==0 & k2==0),sum(scaledpr)]
-  partition_k_counts[(k1==0 & k2==0),scaledpr:=ks0]
-  return(partition_k_counts)
+  allDT <- unique(allDT[,count:= sum(count), by=.(n1,k1,k2)])
+  return(allDT)
 }

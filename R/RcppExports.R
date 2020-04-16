@@ -29,3 +29,7 @@ subPop_freqSpec <- function(CbTable, nSam) {
     .Call(`_phisweepr_subPop_freqSpec`, CbTable, nSam)
 }
 
+testiter <- function(x) {
+    .Call(`_phisweepr_testiter`, x)
+}
+

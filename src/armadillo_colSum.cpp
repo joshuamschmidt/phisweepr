@@ -63,13 +63,5 @@ arma::sp_mat Arma_colSums_spM(const arma::sp_mat& x) {
 //   }
 // }
 // 
-// // [[Rcpp::export]]
-// arma::sp_mat group(const arma::sp_mat& x, int c) {
-//   for (arma::sp_mat::const_iterator i = x.begin(); i != x.end(); ++i) {
-//     if (i.col()==c) {
-//       Rcpp::Rcout << " row is " << i.row() << std::endl;
-//     }
-//   }
-// }
 
 
