@@ -66,7 +66,9 @@ get_two_dimensionalSFS <- function(dataObject,
       # also realise if simuated with outgroup, can get k1 0 k2 0 positions.
       kDT <- unique(data.table(n1,k1,k2)[!i,][,count:= .N, by=.(n1,k1,k2)])
       kDT <- kDT[!(k1==0 & k2==0)]
-      kDT <- rbindlist(list(kDT,data.table(n1,k1=0,k2=0,count=n.monomorphic)))
+      if (monomorphic == TRUE) {
+        kDT <- rbindlist(list(kDT,data.table(n1,k1=0,k2=0,count=n.monomorphic)))
+      }
       allDT <- rbindlist(list(allDT,kDT))
     }
   }
