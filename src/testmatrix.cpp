@@ -15,16 +15,16 @@ using namespace Rcpp;
 //   
 // } 
 // [[Rcpp::export]]
-arma::mat groupInfo(const arma::sp_mat& geno_Matrix, int coreIdx, int n1min, int n1max, int nSam) {
-  //int i,j,groups,nSites;
-  // initialise matrix to hold 2-d SFS remember (row,col)
-  int outrows = n1max - n1min +1;
-  arma::mat outMatrix(outrows, nSam, arma::fill::zeros);
-  outMatrix(0,0) = 1;
-  outMatrix(0,1) += 5;
-  return(outMatrix);
-  //return(arma::sum( geno_Matrix, 0 ));
-}
+// arma::mat groupInfo(const arma::sp_mat& geno_Matrix, int coreIdx, int n1min, int n1max, int nSam) {
+//   //int i,j,groups,nSites;
+//   // initialise matrix to hold 2-d SFS remember (row,col)
+//   int outrows = n1max - n1min +1;
+//   arma::mat outMatrix(outrows, nSam, arma::fill::zeros);
+//   outMatrix(0,0) = 1;
+//   outMatrix(0,1) += 5;
+//   return(outMatrix);
+//   //return(arma::sum( geno_Matrix, 0 ));
+// }
 //   groups = 2;
 //   // change idx from 1-based to 0-based array
 //   coreIdx = coreIdx - 1;
@@ -44,12 +44,12 @@ arma::mat groupInfo(const arma::sp_mat& geno_Matrix, int coreIdx, int n1min, int
 // }
 
 
-// [[Rcpp::export]]
-NumericVector test_colSums(arma::sp_mat& geno_Matrix) { 
-  size_t cols = geno_Matrix.n_cols; 
-  NumericVector res(cols);
-  for (size_t i=0; i<cols; i++) { 
-    res[i] = sum(geno_Matrix.col(i));
-  }
-  return(res); 
-}
+// // [[Rcpp::export]]
+// NumericVector test_colSums(arma::sp_mat& geno_Matrix) { 
+//   size_t cols = geno_Matrix.n_cols; 
+//   NumericVector res(cols);
+//   for (size_t i=0; i<cols; i++) { 
+//     res[i] = sum(geno_Matrix.col(i));
+//   }
+//   return(res); 
+// }

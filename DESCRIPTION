@@ -20,8 +20,10 @@ Imports:
     NMOF,
     DescTools,
     Matrix,
-    RcppArmadillo
+    RcppArmadillo,
+    xtensor
 RoxygenNote: 7.1.0
 LinkingTo: 
     Rcpp,
-    RcppArmadillo
+    RcppArmadillo,
+    xtensor
