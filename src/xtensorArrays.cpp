@@ -16,6 +16,26 @@
 
 using namespace Rcpp;
 
+// [[Rcpp::export]]
+NumericMatrix groupInfo( NumericMatrix geno_Matrix, int coreIdx) {
+  int i,j,groups,nSites,nSam;
+  groups = 2;
+  // change idx from 1-based to 0-based array
+  coreIdx = coreIdx -1;
+  // allocate space of group info 2-d array
+  nSam = geno_Matrix.nrow();
+  nSites = geno_Matrix.ncol();
+  NumericMatrix groupInfo(nSites, groups);
+  
+  // loop over the sample haplotypes            
+  for(i=0;i<nSam;i++){
+    if(geno_Matrix(i,coreIdx)==1)
+      for(j=0; j<nSites; j++) groupInfo(j,0) += geno_Matrix(i,j);	// get count of k derived alleles over all other sites.
+    else
+      for(j=0; j<nSites; j++) groupInfo(j,1) += geno_Matrix(i,j);
+  }
+  return(groupInfo);
+}
 
 
 

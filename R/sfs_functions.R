@@ -86,6 +86,7 @@ get_two_dimensionalSFSDT <- function(dataObject,
     }
   }
   allDT <- unique(allDT[,count:= sum(count), by=.(n1,k1,k2)])
+  allDT <- allDT[,.(k1,k2,pr=count/sum(count)),by=n1][order(n1,k1,k2)]
   return(allDT)
 }
 
@@ -94,6 +95,7 @@ get_two_dimensionalSFSlist <- function(dataObject,
                                    n1Max,
                                    monomorphic=FALSE,
                                    fixedDerived=FALSE){
+  # this may be unconventional, as I store these as k2,k1 matrices.
   # define output matrix
   # outMatrix <- Matrix::Matrix(0,nrow = dataObject$sample.size+1, ncol =  dataObject$sample.size+1,sparse = F)
   derived_allele_counts <- Matrix::diff(dataObject$genotypes@p)
@@ -116,14 +118,14 @@ get_two_dimensionalSFSlist <- function(dataObject,
       k2 <- factor(diff(dataObject$genotypes[-rowslice,]@p),levels = 0:n1Max)
       subSFS <- unclass(table(k2,k1))
       if (monomorphic == TRUE && fixedDerived== TRUE) {
-        subSFS[1,1] <- n.monomorphic - subSFS[n1+1,n1+1]
+        subSFS[1,1] <- n.monomorphic - subSFS[n2+1,n1+1]
       }
       if (monomorphic == TRUE && fixedDerived== FALSE) {
-        subSFS[n1+1,n1+1] <- 0
+        subSFS[n2+1,n1+1] <- 0
         subSFS[1,1] <- n.monomorphic
       }
       if (monomorphic == FALSE && fixedDerived== FALSE) {
-        subSFS[n1+1,n1+1] <- 0
+        subSFS[n2+1,n1+1] <- 0
         subSFS[1,1] <- 0
       }
       outList[[n]] <- outList[[n]] + subSFS
