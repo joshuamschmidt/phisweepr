@@ -114,17 +114,17 @@ get_two_dimensionalSFSlist <- function(dataObject,
       n <- n1 - n1Min + 1 # relative n, to find which list slice stores the n1 matrix.
       n2 <- dataObject$sample.size - n1
       rowslice <- which(dataObject$genotypes[,i]!=0)
-      k1 <- factor(diff(dataObject$genotypes[rowslice,]@p),levels = 0:n1Max)
-      k2 <- factor(diff(dataObject$genotypes[-rowslice,]@p),levels = 0:n1Max)
+      k1 <- factor(diff(dataObject$genotypes[rowslice,]@p),levels = 0:n1Max)[-i]
+      k2 <- factor(diff(dataObject$genotypes[-rowslice,]@p),levels = 0:n1Max)[-i]
       subSFS <- unclass(table(k2,k1))
-      if (monomorphic == TRUE && fixedDerived== TRUE) {
+      if(monomorphic == TRUE && fixedDerived== TRUE) {
         subSFS[1,1] <- n.monomorphic - subSFS[n2+1,n1+1]
       }
-      if (monomorphic == TRUE && fixedDerived== FALSE) {
+      if(monomorphic == TRUE && fixedDerived== FALSE) {
         subSFS[n2+1,n1+1] <- 0
         subSFS[1,1] <- n.monomorphic
       }
-      if (monomorphic == FALSE && fixedDerived== FALSE) {
+      if(monomorphic == FALSE && fixedDerived== FALSE) {
         subSFS[n2+1,n1+1] <- 0
         subSFS[1,1] <- 0
       }
