@@ -112,7 +112,7 @@ unlist(lapply(1:31, function(x) all.equal(subP[x,],subP_2[x,],tolerance = 2e-7))
 #obs.cond.2d.sfs <- get_two_dimensionalSFSDT(dataObject = dataObject,n1Min = 1,n1Max = 30,monomorphic = FALSE,fixedDerived = FALSE)
 obs.cond.2d.sfsL <- get_two_dimensionalSFSlist(dataObject = dataObject,n1Min = 1,n1Max = 30,monomorphic = FALSE,fixedDerived = FALSE)
 #sfsCube <- listMatricesToArmaCube(obs.cond.2d.sfsL,n1Min,n1Max)
-nkMatrix <- getSfs_perN_from_two_dimensionalSFSlist(two_dimensionalSFSlist = obs.cond.2d.sfsL,monomorphic = FALSE,fixedDerived = TRUE)
+nkMatrix <- getSfs_perN_from_two_dimensionalSFSlist(two_dimensionalSFSlist = obs.cond.2d.sfsL,monomorphic = FALSE,fixedDerived = FALSE)
 
 
 
