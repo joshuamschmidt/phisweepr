@@ -1,15 +1,32 @@
-#' Calculate the 1-d SFS
+#' Calculate the derived allele count.
 #'
 #' @param genotype_matrix A dgCMat sparse Matrix
-#' @param fixed_sites A string
+#' @return A vector: A numeric vector of the derived allele counts from \code{genotype_matrix}
+#' @examples
+#' get_sfs(genotype_matrix)
+get_DACount <- function(genotype_matrix){
+  derived_allele_counts <- Matrix::diff(genotype_matrix@p)
+  return(derived_allele_counts)
+}
+
+#' Calculate the 1-d SFS and derived allele count.
+#'
+#' @param genotype_matrix A dgCMat sparse Matrix
+#' @param fixed_derived A string
+#' @param monomorphic A string
 #' @return A list object: A numeric vector of the derived allele counts and the 
 #' sfs from  \code{genotype_matrix}
 #' @examples
 #' get_sfs(genotype_matrix, fixed_sites = FALSE)
-get_sfs <- function(genotype_matrix, fixed_derived = FALSE){
-  derived_allele_counts <- Matrix::diff(genotype_matrix@p)
+get_sfsDcountList <- function(genotype_matrix, monomorphic=FALSE, fixed_derived = FALSE){
+  # max n, use factor to get all counts...
+  maxN <- dim(genotype_matrix)[1]
+  #derived_allele_counts <- Matrix::diff(genotype_matrix@p)
+  derived_allele_counts <- factor(Matrix::diff(genotype_matrix@p),levels = 0:maxN)
   sfs <- table(derived_allele_counts)
-  sfs[1] <- 0
+  if ( monomorphic == FALSE ){
+    sfs[1] <- 0
+  }
   if( fixed_derived == FALSE ){
     sfs[length(sfs)] <- 0
   }
@@ -143,6 +160,39 @@ get_two_dimensionalSFSlist <- function(dataObject,
   outList <- lapply(outList, function(x) x/sum(x))
   return(outList)
 }
+
+
+getSfs_perN_from_two_dimensionalSFSlist <- function(two_dimensionalSFSlist,
+                                                    monomorphic=FALSE,
+                                                    fixedDerived=FALSE){
+  list_neutral_sfs <- mapply(calc_MatrixCell_divededbyColSum, two_dimensionalSFSlist, seq_along(two_dimensionalSFSlist),MoreArgs=list(monomorphic,fixedDerived),SIMPLIFY = FALSE )
+  names(list_neutral_sfs) = 1:length(list_neutral_sfs)
+  list_neutral_sfs <- append(list_neutral_sfs, list('0'=0), 0)
+  sfs_Matrix <- matrix(0.0,nrow=length(list_neutral_sfs),ncol=length(list_neutral_sfs))
+  for(i in 1:length(list_neutral_sfs)) {
+    # so R 1 is cpp 0/SFS n0
+    n_sfs <- list_neutral_sfs[[i]]
+    if(length(n_sfs) >0) {
+      sfs_Matrix[i, 1:length(n_sfs)] <- n_sfs
+    }
+  }
+  return(sfs_Matrix) 
+}
+
+calc_MatrixCell_divededbyColSum <- function(two_dimensionalSFS, n, monomorphic= FALSE, fixedDerived= FALSE){
+  sfs <-  Matrix::colSums(two_dimensionalSFS)
+   if(monomorphic == FALSE) {
+    sfs[1] <- 0
+   }
+  if(fixedDerived == FALSE) {
+    sfs[n+1] <- 0
+  }
+  if(sum(sfs)> 0){
+    sfs <- sfs/sum(sfs)
+  }
+  sfs <- sfs[1:(n+1)]
+  return(sfs)
+  }
 
 
 factorToInt <- function(intFactorVector){

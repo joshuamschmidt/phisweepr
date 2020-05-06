@@ -77,8 +77,11 @@ library(cowplot)
 # genome object is example.data
 # idea is to have a toplevel function 'calculate_SFSs', which returns a list object with 1-d SFS, 2-d SFS, empirical and theoretocal 
 # have to estimate the mutation rate. using pi.
-load_all()
-load("~/Documents/acad/acad_projects/phisweepr/data/example.data.rda")
+#load_all()
+source('R/sfs_functions.R')
+Rcpp::sourceCpp('src/rcpp_sfs_functions.cpp')
+Rcpp::sourceCpp('src/xtensorArrays.cpp')
+
 one_dimensional_sfs <- get_sfs(example.data$genotypes, fixed_derived = FALSE)
 mutation_rate <- theta_from_pi(one_dimensional_sfs[["derived_allele_counts"]],nSam = example.data$sample.size, locusLength = example.data$locusLength)
 ```
@@ -90,23 +93,29 @@ whether to use all sites or only polymorphic sites (and within that the use of f
 
 
 ```{r Vy + Kim generation of equilibirum SFS, fig.height= 5, fig.width= 15}
+load("data/example.data.rda")
 dataObject <- example.data
-n1Min <- round(example.data$sample.size*0.25)
-n1Max <- round(example.data$sample.size*0.75)
-binomial.coeffs <- CbTable(example.data$sample.size)
-subP <- subPop_freqSpec(binomial.coeffs,example.data$sample.size)
-pHomo <- calc_pHomo(binomial.coeffs,example.data$sample.size,n1Max,n1Min)
+example.data[["derived_allele_counts"]] <- Matrix::diff(dataObject$genotypes@p)
+n1Min <- round(dataObject$sample.size*0.25)
+n1Max <- round(dataObject$sample.size*0.75)
+binomial.coeffs <- CbTable(dataObject$sample.size)
+subP <- subPop_freqSpec(binomial.coeffs,dataObject$sample.size)
+pHomo <- calc_pHomo(binomial.coeffs,dataObject$sample.size,n1Max,n1Min)
 ## can get the same thing as.....
-subP_2 <- Matrix::Matrix(do.call(rbind,lapply(0:example.data$sample.size,function(x) {sfs <- numeric(example.data$sample.size+1); if(x > 1) {sfs[1:x] <-  1/(0:(x-1))}; sfs[1] <- 0; sfs })),sparse = TRUE)
+subP_2 <- Matrix::Matrix(do.call(rbind,lapply(0:dataObject$sample.size,function(x) {sfs <- numeric(dataObject$sample.size+1); if(x > 1) {sfs[1:x] <-  1/(0:(x-1))}; sfs[1] <- 0; sfs })),sparse = TRUE)
 # these are very close in values, down to 2e-7 at WORST.
 unlist(lapply(1:31, function(x) all.equal(subP[x,],subP_2[x,],tolerance = 2e-7)))
 
 
 ## empirical conditional SFS
 # i have two functions. one returns a single DT, the other a list of matrices.
-obs.cond.2d.sfs <- get_two_dimensionalSFSDT(dataObject = example.data,n1Min = 1,n1Max = 29,monomorphic = FALSE,fixedDerived = FALSE)
-obs.cond.2d.sfsL <- get_two_dimensionalSFSlist(dataObject = example.data,n1Min = 1,n1Max = 29,monomorphic = FALSE,fixedDerived = FALSE)
-sfsCube <- listMatricesToArmaCube(obs.cond.2d.sfsL,n1Min,n1Max)
+#obs.cond.2d.sfs <- get_two_dimensionalSFSDT(dataObject = dataObject,n1Min = 1,n1Max = 30,monomorphic = FALSE,fixedDerived = FALSE)
+obs.cond.2d.sfsL <- get_two_dimensionalSFSlist(dataObject = dataObject,n1Min = 1,n1Max = 30,monomorphic = FALSE,fixedDerived = FALSE)
+#sfsCube <- listMatricesToArmaCube(obs.cond.2d.sfsL,n1Min,n1Max)
+nkMatrix <- getSfs_perN_from_two_dimensionalSFSlist(two_dimensionalSFSlist = obs.cond.2d.sfsL,monomorphic = FALSE,fixedDerived = TRUE)
+
+
+
 
 ## assumed equilibirum sfs
 neutralExpSfsCube <- standardNeutralJointSFSArmaCube(CbTable = binomial.coeffs,pHomo = pHomo, n1Min = n1Min, n1Max = n1Max, nSam = dataObject$sample.size,theta = mutation_rate, monomorphic = FALSE,fixedDerived = FALSE)
