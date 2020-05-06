@@ -79,7 +79,7 @@ library(cowplot)
 # have to estimate the mutation rate. using pi.
 load_all()
 load("~/Documents/acad/acad_projects/phisweepr/data/example.data.rda")
-one_dimensional_sfs <- get_sfs(example.data$genotypes, fixed_derived = TRUE)
+one_dimensional_sfs <- get_sfs(example.data$genotypes, fixed_derived = FALSE)
 mutation_rate <- theta_from_pi(one_dimensional_sfs[["derived_allele_counts"]],nSam = example.data$sample.size, locusLength = example.data$locusLength)
 ```
 
