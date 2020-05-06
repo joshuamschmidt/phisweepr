@@ -104,8 +104,8 @@ unlist(lapply(1:31, function(x) all.equal(subP[x,],subP_2[x,],tolerance = 2e-7))
 
 ## empirical conditional SFS
 # i have two functions. one returns a single DT, the other a list of matrices.
-obs.cond.2d.sfs <- get_two_dimensionalSFSDT(dataObject = example.data,n1Min = n1Min,n1Max = n1Max,monomorphic = FALSE,fixedDerived = FALSE)
-obs.cond.2d.sfsL <- get_two_dimensionalSFSlist(dataObject = example.data,n1Min = n1Min,n1Max = n1Max,monomorphic = FALSE,fixedDerived = FALSE)
+obs.cond.2d.sfs <- get_two_dimensionalSFSDT(dataObject = example.data,n1Min = 1,n1Max = 29,monomorphic = FALSE,fixedDerived = FALSE)
+obs.cond.2d.sfsL <- get_two_dimensionalSFSlist(dataObject = example.data,n1Min = 1,n1Max = 29,monomorphic = FALSE,fixedDerived = FALSE)
 sfsCube <- listMatricesToArmaCube(obs.cond.2d.sfsL,n1Min,n1Max)
 
 ## assumed equilibirum sfs
@@ -145,7 +145,7 @@ pRes <- ggplot(comSFSlong, aes(k1, k2)) +
   geom_tile(aes(fill = residual)) +
   scale_fill_gradientn(colours = cols) + coord_equal()
 
-plot_grid(pObs, pExp, pRes,nrow = 1,labels = c('observed', 'expected','residuals: obs-exp'),align = "hv")
+plot_grid(pExp, pObs, pRes,nrow = 1,labels = c('expected', 'observed', 'residuals: obs-exp'),align = "hv")
 ```
 
 
