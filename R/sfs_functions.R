@@ -61,8 +61,12 @@ get_two_dimensionalSFSDT <- function(dataObject,
     if (n1 >= n1Min && n1 <= n1Max) {
       n2 <- dataObject$sample.size - n1
       rowslice <- which(dataObject$genotypes[,i]!=0)
-      k1 <- factor(diff(dataObject$genotypes[rowslice,]@p),levels = 0:dataObject$sample.size)
-      k2 <- factor(diff(dataObject$genotypes[-rowslice,]@p),levels = 0:dataObject$sample.size)
+      if (n1==1) {
+        k1 <- factor(dataObject$genotypes[rowslice,],levels = 0:n1Max)[-i]
+      } else{ k1 <- factor(diff(dataObject$genotypes[rowslice,]@p),levels = 0:n1Max)[-i] }
+      if (n2==1) {
+        k2 <- factor(dataObject$genotypes[-rowslice,],levels = 0:n1Max)[-i]
+      } else{ k2 <- factor(diff(dataObject$genotypes[-rowslice,]@p),levels = 0:n1Max)[-i] }
       # how many positions were monomorphic? add?
       # also realise if simuated with outgroup, can get k1 0 k2 0 positions.
       kDT <- unique(data.table(n1,k1,k2)[!i,][,count:= .N, by=.(n1,k1,k2)])
@@ -114,8 +118,13 @@ get_two_dimensionalSFSlist <- function(dataObject,
       n <- n1 - n1Min + 1 # relative n, to find which list slice stores the n1 matrix.
       n2 <- dataObject$sample.size - n1
       rowslice <- which(dataObject$genotypes[,i]!=0)
-      k1 <- factor(diff(dataObject$genotypes[rowslice,]@p),levels = 0:n1Max)[-i]
-      k2 <- factor(diff(dataObject$genotypes[-rowslice,]@p),levels = 0:n1Max)[-i]
+      # this breaks down for n=1!!!!!
+      if (n1==1) {
+        k1 <- factor(dataObject$genotypes[rowslice,],levels = 0:n1Max)[-i]
+      } else{ k1 <- factor(diff(dataObject$genotypes[rowslice,]@p),levels = 0:n1Max)[-i] }
+      if (n2==1) {
+        k2 <- factor(dataObject$genotypes[-rowslice,],levels = 0:n1Max)[-i]
+      } else{ k2 <- factor(diff(dataObject$genotypes[-rowslice,]@p),levels = 0:n1Max)[-i] }
       subSFS <- unclass(table(k2,k1))
       if(monomorphic == TRUE && fixedDerived== TRUE) {
         subSFS[1,1] <- n.monomorphic - subSFS[n2+1,n1+1]
