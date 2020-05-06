@@ -1,0 +1,164 @@
+---
+title: "package_setup"
+author: "joshmschmidt"
+date: "03/04/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+#### Setting up this package
+follow steps here: https://happygitwithr.com/new-github-first.html
+
+```{r, eval=FALSE}
+library(devtools)
+library(usethis)
+library(roxygen2)
+library(ggplot2)
+library(data.table)
+use_description()
+use_namespace()
+  usethis::use_package("roxygen2")
+usethis::use_package("data.table")
+usethis::use_package("Rcpp")
+usethis::use_package("pacman")
+usethis::use_package("parallel")
+usethis::use_package("NMOF")
+usethis::use_package("DescTools")
+usethis::use_package("Matrix")
+usethis::use_package("RcppArmadillo")
+usethis::use_package("RcppEigen")
+devtools::document()
+usethis::use_rcpp()
+usethis::use_rcpp_eigen()
+usethis::use_rcpp_armadillo()
+usethis::use_rcpp_eigen()
+
+```
+
+
+then add R folder to project directory, manually in R file finder
+
+```{bash Generate msms example data, eval=FALSE}
+# mu = 1e-8; rho = mu; locuslength = 20e6;Ne = 1e4; s = 0.01; additive;
+# samples 30 ingroup, 1 outgroup chromosomes = 31.
+msms="/Users/joshua_schmidt/msms/lib/msms.jar"
+out="${HOME}/Documents/acad/acad_projects/phisweepr/inst/extdata"
+java -Xmx6G -jar ${msms} 31 1 -t 8000 -r 8000 20000001 -I 2 30 1 0.01 -SAA 200 -SaA 100  -Sc 0 2 0 0 0 -SF 0 -N 10000 -seed 101010 -Smark -Sp 0.5 -oFP 0.00000000 > ${out}/msms.selection.outgroup.txt
+
+discoal="/Users/joshua_schmidt/Documents/acad/acad_projects/selection.statistics/projectBins/discoal/discoal" 
+${discoal} 31 1 1000000 -t 400 -r 400 -p 2 30 1 -ed 0.05 0 1 -ws 0.00 -a 200 -x 0.5 -c 0.7 -i 4 > ${out}/discoal.selection.outgroup.txt
+
+discoal="/Users/joshua_schmidt/Documents/acad/acad_projects/selection.statistics/projectBins/discoal/discoal" 
+${discoal} 31 1 1000000 -t 400 -r 400 -p 2 30 1 -ed 0.05 0 1 -ws 0.00 -a 200 -x 0.5 -c 0.7 -i 4 > ${out}/discoal.neutral.outgroup.txt
+
+``` 
+
+```{r read in and process a basic msms selection scan, eval=FALSE}
+ms.data <- "/Users/joshua_schmidt/Documents/acad/acad_projects/phisweepr/inst/extdata/msms.selection.outgroup.txt"
+discoal.data <- "/Users/joshua_schmidt/Documents/acad/acad_projects/phisweepr/inst/extdata/discoal.selection.outgroup.txt"
+#example.data <- get.ms.output(ms.file = ms.data)
+example.data <- get.simulated.data(discoal.data, "discoal")
+usethis::use_data(example.data, name="simData",internal = TRUE,overwrite = TRUE)
+```
+
+### NOTE *****
+Check makevars file - if it has openmp, it will fuck up on mac, as clang does not support it.
+
+```{r sfs object from genome object}
+library(devtools)
+library(usethis)
+library(roxygen2)
+library(data.table)
+library(ggplot2)
+library(viridis)
+library(cowplot)
+# genome object is example.data
+# idea is to have a toplevel function 'calculate_SFSs', which returns a list object with 1-d SFS, 2-d SFS, empirical and theoretocal 
+# have to estimate the mutation rate. using pi.
+load_all()
+load("~/Documents/acad/acad_projects/phisweepr/data/example.data.rda")
+one_dimensional_sfs <- get_sfs(example.data$genotypes, fixed_derived = TRUE)
+mutation_rate <- theta_from_pi(one_dimensional_sfs[["derived_allele_counts"]],nSam = example.data$sample.size, locusLength = example.data$locusLength)
+```
+
+
+##### What are the different options we an have
+estimate the SFS form the data, or assume the neutral equilibrium model.  
+whether to use all sites or only polymorphic sites (and within that the use of fixed derived)  
+
+
+```{r Vy + Kim generation of equilibirum SFS, fig.height= 5, fig.width= 15}
+dataObject <- example.data
+n1Min <- round(example.data$sample.size*0.25)
+n1Max <- round(example.data$sample.size*0.75)
+binomial.coeffs <- CbTable(example.data$sample.size)
+subP <- subPop_freqSpec(binomial.coeffs,example.data$sample.size)
+pHomo <- calc_pHomo(binomial.coeffs,example.data$sample.size,n1Max,n1Min)
+## can get the same thing as.....
+subP_2 <- Matrix::Matrix(do.call(rbind,lapply(0:example.data$sample.size,function(x) {sfs <- numeric(example.data$sample.size+1); if(x > 1) {sfs[1:x] <-  1/(0:(x-1))}; sfs[1] <- 0; sfs })),sparse = TRUE)
+# these are very close in values, down to 2e-7 at WORST.
+unlist(lapply(1:31, function(x) all.equal(subP[x,],subP_2[x,],tolerance = 2e-7)))
+
+
+## empirical conditional SFS
+# i have two functions. one returns a single DT, the other a list of matrices.
+obs.cond.2d.sfs <- get_two_dimensionalSFSDT(dataObject = example.data,n1Min = n1Min,n1Max = n1Max,monomorphic = FALSE,fixedDerived = FALSE)
+obs.cond.2d.sfsL <- get_two_dimensionalSFSlist(dataObject = example.data,n1Min = n1Min,n1Max = n1Max,monomorphic = FALSE,fixedDerived = FALSE)
+sfsCube <- listMatricesToArmaCube(obs.cond.2d.sfsL,n1Min,n1Max)
+
+## assumed equilibirum sfs
+neutralExpSfsCube <- standardNeutralJointSFSArmaCube(CbTable = binomial.coeffs,pHomo = pHomo, n1Min = n1Min, n1Max = n1Max, nSam = dataObject$sample.size,theta = mutation_rate, monomorphic = FALSE,fixedDerived = FALSE)
+neutralExpSfsCube[,,8]
+
+
+```
+
+```{r convert obs cube slice to data.table and plot}
+cols <- viridis(10)
+# can convert a slice to a long formatDT
+obsSFSlong <- sfsMatrixToLongDT(sfsMatrix =  sfsCube[,,8],
+                              n1 = 15,
+                              nSam = dataObject$sample.size)
+pObs <- ggplot(obsSFSlong, aes(k1, k2)) +
+  geom_tile(aes(fill = log10(frequency))) +
+  scale_fill_gradientn(colours = cols) + coord_equal()
+```
+
+```{r convert exp cube slice to data.table and plot}
+expSFSlong <- sfsMatrixToLongDT(sfsMatrix = neutralExpSfsCube[,,8],
+                              n1 = 15,
+                              nSam = dataObject$sample.size)
+pExp <- ggplot(expSFSlong, aes(k1, k2)) +
+  geom_tile(aes(fill = log10(frequency))) +
+  scale_fill_gradientn(colours = cols) + coord_equal()
+```
+
+```{r find residuals and plot}
+# residuals
+setkey(obsSFSlong,n1,k1,k2)
+setkey(expSFSlong,n1,k1,k2) 
+comSFSlong <- obsSFSlong[expSFSlong]
+comSFSlong[,residual:=frequency-i.frequency]
+pRes <- ggplot(comSFSlong, aes(k1, k2)) +
+  geom_tile(aes(fill = residual)) +
+  scale_fill_gradientn(colours = cols) + coord_equal()
+
+plot_grid(pObs, pExp, pRes,nrow = 1,labels = c('observed', 'expected','residuals: obs-exp'),align = "hv")
+```
+
+
+
+```{r expand.grid in r}
+n1 <- 22
+n2 = 30 - 22
+k1 <- 0:n1
+k2 <- 0:n2
+l <- length(k1) * length(k2)
+a <- array(dim=c(l,2))
+for(j in seq_along(k2)){
+  
+}
+```
+
