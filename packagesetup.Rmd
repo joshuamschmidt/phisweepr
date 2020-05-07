@@ -79,6 +79,7 @@ library(cowplot)
 # have to estimate the mutation rate. using pi.
 #load_all()
 source('R/sfs_functions.R')
+source('R/utilityFunctions.R')
 Rcpp::sourceCpp('src/rcpp_sfs_functions.cpp')
 Rcpp::sourceCpp('src/xtensorArrays.cpp')
 
@@ -115,11 +116,13 @@ obs.cond.2d.sfsL <- get_two_dimensionalSFSlist(dataObject = dataObject,n1Min = 1
 nkMatrix <- getSfs_perN_from_two_dimensionalSFSlist(two_dimensionalSFSlist = obs.cond.2d.sfsL,monomorphic = FALSE,fixedDerived = FALSE)
 
 # calculate phiS!
+
+n1range <- n1Min:n1Max
 getPhiS <- function(dataObject, nkMatrix, n1range, alphaDres=1,beta=1){
   nSam=dataObject$sample.size
   alphad_seq = seq.log10(0.001, 10, length.out = alphaDres*100+2, add.zero = TRUE)
   log10_alphad=log10(alphad_seq)
-  
+  phiSTable <- makePhiSTable(nSam = nSam,testN1s = n1range, ptable = nkMatrix, alphad = 10^log10_alphad,1)
   # pass 10^log10_alphaD to phiS functions.
   
 }
