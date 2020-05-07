@@ -88,7 +88,26 @@ double p_Phi_Selection_second_term_inner_right(int n1, int k1, int n2, int k2,co
 }
 
 // [[Rcpp::export]]
-double phi_S_alphad_C(int n1, int k1, int n2, int k2, const arma::sp_mat& ptable, double alphad, double beta){
+NumericMatrix rcppExpandGridFromZero(int n1, int n2) {
+  // creates every pairwise combination of 0:n1,0:n2
+  int combinations = (n1+1) * (n2+1);
+  NumericMatrix k1k2(combinations,2);
+  int jstart = 0;
+  for(int i=0;i<=n1;i++){
+    if(i!=0) {
+      jstart = i * (n2+1);
+    }
+    for(int j=0; j<=n2;j++) {
+      k1k2(jstart+j,0) = i;
+      k1k2(jstart+j,1) = j;
+    }
+  }
+  return k1k2;
+}
+
+
+// [[Rcpp::export]]
+double phi_S_alphad_C(int n1, int k1, int n2, int k2, NumericMatrix ptable, double alphad, double beta){
   int ntt,ktt,i;
   double p1,p2,p_total,p_outer,p_inner;
   
@@ -111,95 +130,23 @@ double phi_S_alphad_C(int n1, int k1, int n2, int k2, const arma::sp_mat& ptable
   return(p_total);
 }
 
+
 // [[Rcpp::export]]
-NumericVector phi_S_alphad_lookupGenerator_C(int n1,NumericVector k1,int n2,NumericVector k2, const arma::sp_mat& ptable, NumericVector alphad, NumericVector beta){
-  int permSize = alphad.size();
-  NumericVector outputVector(alphad.size(), 0);
+NumericVector phi_S_alphad_lookupGenerator_C(int n1, NumericVector k1, int n2, NumericVector k2, NumericMatrix ptable, double alphad, double beta){
+  int permSize = k1.size();
+  NumericVector outputVector(k1.size(), 0);
   for (int i=0; i<permSize; i++) {
-    outputVector(i) = phi_S_alphad_C(n1, k1(i), n2, k2(i), ptable, alphad(i), beta(i));
+    outputVector(i) = phi_S_alphad_C(n1, k1(i), n2, k2(i), ptable, alphad, beta);
   }
   return(outputVector);
 }
 
 
-// // [[Rcpp::export]]
-// xt::rarray<int> test4dArray(xt::rarray<int>& t) {
-//   t(0,0,0,0) = 90;
-//   return t;
-// }
-// 
-// // [[Rcpp::export]]
-// xt::rarray<int> test4dArrayIndex(xt::rarray<int>& t) {
-//   auto select = t(0,0,0,0);
-//   return select;
-// }
-
-// [[Rcpp::export]]
-xt::rarray<int> test4dArrayReturnFirstSlot(xt::rarray<int>& t, NumericVector alphaD) {
-  int dim = t.dimension();
-  if(dim!=4){
-    Rcpp::stop("check that that input array has four dimensions!");
-  }
-  //xt::rarray<int> subt = xt::view(t, xt::all(),xt::all(),xt::all(), 0);
-  const int n_rows = t.shape(0);
-  int n_cols = t.shape(1);
-  int n_matrices = t.shape(2);
-  int n_slices = t.shape(3);
-  int nAlphD = alphaD.size();
-  if(nAlphD != n_slices){
-    Rcpp::stop("check that that alphD length array has four dimensions!");
-  }
-  for(int s=0;s<n_slices;s++){
-    for(int m=0;m<n_matrices;m++){
-      for(int c=0;c<n_cols;c++){
-        for(int r=0;r<n_rows;r++){
-          t(r,c,m,s) = t(r,c,m,s)+1;
-        }
-      }
-    }
-  }
-  // Rcpp::Rcout << "t has " << dim << " dimensions" << std::endl;
-  // Rcpp::Rcout << "t has " << n_rows << " rows" << std::endl;
-  // Rcpp::Rcout << "t has " << n_cols << " cols" << std::endl;
-  // Rcpp::Rcout << "t has " << n_matrices << " matrices" << std::endl;
-  // Rcpp::Rcout << "t has " << n_slices << " slices" << std::endl;
-  return t;
-}
-
-
-
-
 
 
 
 // [[Rcpp::export]]
-xt::rarray<int> arraySubviewTest(xt::rarray<int>& t) {
-  xt::rarray<int> subt = xt::view(t,  1,xt::all(),xt::all(), 0);
-  return subt;
-}
-
-// [[Rcpp::export]]
-NumericMatrix rcppExpandGridFromZero(int n1, int n2) {
-  // creates every pairwise combination of 0:n1,0:n2
-  int combinations = (n1+1) * (n2+1);
-  NumericMatrix k1k2(combinations,2);
-  int jstart = 0;
-  for(int i=0;i<=n1;i++){
-    if(i!=0) {
-      jstart = i * (n2+1);
-    }
-    for(int j=0; j<=n2;j++) {
-      k1k2(jstart+j,0) = i;
-      k1k2(jstart+j,1) = j;
-    }
-  }
-  return k1k2;
-}
-
-//xt::rarray<double>
-
-// [[Rcpp::export]]
-xt::rarray<double> makePhiSTable(int nSam, NumericVector testN1s, NumericMatrix ptable, NumericVector alphad, int beta) {
+xt::rarray<double> makePhiSTable(int nSam, NumericVector testN1s, NumericMatrix ptable, NumericVector alphad, double beta) {
    // get dimensions of objects
   int nN1 = testN1s.size();
   int maxN1 = max(testN1s);
@@ -214,7 +161,6 @@ xt::rarray<double> makePhiSTable(int nSam, NumericVector testN1s, NumericMatrix 
   // create xarray to store phiS
   const xt::rarray<double>::shape_type& shape = { n_rows, n_cols, n_matrices, nAlphad };
   xt::rarray<double> phiSout = xt::zeros<double>(shape);
-  
   // claculate phiS and
   // NumericVector nPhiSVector(1);
    for(int n =0; n <1; n++ ) {
@@ -223,12 +169,11 @@ xt::rarray<double> makePhiSTable(int nSam, NumericVector testN1s, NumericMatrix 
      NumericMatrix k1k2 = rcppExpandGridFromZero(n1, n2);
      NumericVector k1 = k1k2( _ , 0 );
      NumericVector k2 = k1k2( _ , 1 );
-  //   arma::sp_mat n1mat = sfsTable[n];
-  //   Rcout << n1 << " is the current n1 " << std::endl;
-  //   nPhiSVector = phi_S_alphad_lookupGenerator_C(n1,k1,n2,k2,n1mat,alphaD, 1);
+     for(int i=0; i <nAlphad;i++)
+       NumericVector alphadPhiS = phi_S_alphad_lookupGenerator_C(n1,k1,n2,k2,ptable,alphad[i], beta);
   // }
   return(phiSout);
+  }
 }
-
 
 
