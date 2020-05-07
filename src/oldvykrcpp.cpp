@@ -1,5 +1,20 @@
+#define STRICT_R_HEADERS
+// [[Rcpp::plugins(cpp14)]]
+// [[Rcpp::depends(xtensor)]]
 #include <RcppArmadillo.h>
 // [[Rcpp::depends(RcppArmadillo)]]
+
+#include <vector>
+#include <xtensor/xmath.hpp>
+#include <xtensor-r/rarray.hpp>
+#include <xtensor-r/rtensor.hpp>
+#include <xtensor/xadapt.hpp>
+#include <xtensor/xslice.hpp>
+#include <xtensor/xview.hpp>
+#include <xtensor/xshape.hpp>
+#include <Rcpp.h>
+
+using namespace Rcpp;
 
 // // [[Rcpp::export]]
 // arma::field<arma::cube> fourDObject_as_armaFieldofCubes(int N1Length, int k1Length, int k2Length, int alphaDLength) {
@@ -9,6 +24,8 @@
 //   
 //   return A;
 // }
+
+;
 
 // [[Rcpp::export]]
 double probEscape_Sample_C(int n, int k, double alpha, double d, double beta){
@@ -82,11 +99,26 @@ double phi_S_alphad_C(int n1, int k1, int n2, int k2, NumericMatrix ptable, doub
 
 
 // [[Rcpp::export]]
-NumericVector phi_S_alphad_lookupGenerator_C(int n1,NumericVector k1,NumericVector n2,NumericVector k2, NumericMatrix ptable, NumericVector alphad, NumericVector beta){
+NumericVector phi_S_alphad_lookupGenerator_C(int n1, int nSam, NumericVector k1, NumericVector k2, NumericMatrix ptable, NumericVector alphad, NumericVector beta){
   int permSize = alphad.size();
   NumericVector outputVector(alphad.size(), 0);
   for (int i=0; i<permSize; i++) {
-    outputVector(i) = phi_S_alphad_C(n1, k1(i), n2(i), k2(i), ptable, alphad(i), beta(i));
+    outputVector(i) = phi_S_alphad_C(n1, nSam, k1(i), k2(i), ptable, alphad(i), beta(i));
   }
   return(outputVector);
 }
+
+// [[Rcpp::export]]
+xt::rarray<int> generate_phiS_4darray(NumericMatrix ptable, int nSam, int minN1, int maxN1, NumericVector alphad, int beta){
+  int permSize = alphad.size();
+  
+  rcppExpandGridFromZero;
+  phi_S_alphad_lookupGenerator_C
+}
+  
+  
+  
+  
+  
+  
+  
