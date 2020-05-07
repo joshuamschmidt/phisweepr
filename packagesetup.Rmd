@@ -128,9 +128,9 @@ getPhiS <- function(dataObject, nkMatrix, n1range, alphaDres=1,beta=1){
 
 
 s<-c(0.005,0.001)
-col<-viridis(length(s))
+col<-viridis(length(s)+1)[-3]
 for(i in seq_along(s)) {
-    curve(probEscape_Single_C_plot(10^calcAlpha(1e3,1e-8,s[i]),beta = 1,d=x),-0.5e6,0.5e6,n = 500, add=i!=1, col=col[i], main="Reduction of diveristy due to a selective sweep",lwd=2,ylab='Pr. escape a sweep',xlab='distance from sweep (bp)')
+    curve(probEscape_Single_C_plot(10^calcAlpha(1e3,1e-8,s[i]),beta = 1,d=x),-0.5e6,0.5e6,n = 500, add=i!=1, col=col[i], main="Reduction of diveristy due to a selective sweep",lwd=2.5,ylab='Pr. escape a sweep',xlab='distance from sweep (bp)')
 }
 legend('right',legend = s, col=col, lty=1,title = 'selection coefficient',bty='n')
 ## assumed equilibirum sfs
