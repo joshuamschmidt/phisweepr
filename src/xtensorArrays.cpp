@@ -166,6 +166,12 @@ xt::rarray<int> test4dArrayReturnFirstSlot(xt::rarray<int>& t, NumericVector alp
   return t;
 }
 
+
+
+
+
+
+
 // [[Rcpp::export]]
 xt::rarray<int> arraySubviewTest(xt::rarray<int>& t) {
   xt::rarray<int> subt = xt::view(t,  1,xt::all(),xt::all(), 0);
@@ -193,43 +199,35 @@ NumericMatrix rcppExpandGridFromZero(int n1, int n2) {
 //xt::rarray<double>
 
 // [[Rcpp::export]]
-NumericVector makePhiSTable(NumericVector testN1s, int nSam, Rcpp::List sfsTable, NumericVector alphaD) {
-  // grab expand.grid function from R
-  Rcpp::Function expGrid("expand.grid");
-  // get dimensions of objects
+xt::rarray<double> makePhiSTable(int nSam, NumericVector testN1s, NumericMatrix ptable, NumericVector alphad, int beta) {
+   // get dimensions of objects
   int nN1 = testN1s.size();
   int maxN1 = max(testN1s);
-  arma::sp_mat mat = sfsTable[0];
-  unsigned long int n_rows = mat.n_rows;
-  unsigned long int n_cols = mat.n_cols;
-  unsigned long int n_matrices = sfsTable.size();
-  unsigned long int nAlphaD = alphaD.size();
+  unsigned long int n_rows = nSam+1;
+  unsigned long int n_cols = nSam+1;
+  unsigned long int n_matrices = nN1;
+  unsigned long int nAlphad = alphad.size();
   // check dimensions and sizes of inputs match
-  if(n_rows != (maxN1+1) || n_rows != n_cols){
-     Rcpp::stop("check that input matrices are square\n and/or dimensions macth max testN1s");
+  if(n_rows != ptable.nrow() || ptable.nrow() != ptable.ncol()){
+     Rcpp::stop("check that input matrices are square\n and/or dimensions match the sample size");
   }
-  if(n_matrices!= nN1){
-    Rcpp::stop("check that n matrices in sfsTable (dim[3]) == length(testN1s)!");
-  }
-  //Rcout << " all dims ok!" << std::endl;
-  
   // create xarray to store phiS
-  const xt::rarray<double>::shape_type& shape = { n_rows, n_cols, n_matrices, nAlphaD };
-  xt::rarray<double> phiSout(shape);
+  const xt::rarray<double>::shape_type& shape = { n_rows, n_cols, n_matrices, nAlphad };
+  xt::rarray<double> phiSout = xt::zeros<double>(shape);
+  
   // claculate phiS and
-  NumericVector nPhiSVector(1);
-  for(int n =0; n <1; n++ ) {
-    int n1 = testN1s[n];
-    int n2 = nSam - n1;
-    NumericVector beta = {1}; // phiS this is hard coded = 1, to preserve matching beta to partialSweepFinder.
-    NumericMatrix k1k2 = rcppExpandGridFromZero(n1, n2);
-    NumericVector k1 = k1k2( _ , 0 );
-    NumericVector k2 = k1k2( _ , 1 );
-    arma::sp_mat n1mat = sfsTable[n];
-    Rcout << n1 << " is the current n1 " << std::endl;
-    nPhiSVector = phi_S_alphad_lookupGenerator_C(n1,k1,n2,k2,n1mat,alphaD, 1);
-  }
-  return nPhiSVector;
+  // NumericVector nPhiSVector(1);
+   for(int n =0; n <1; n++ ) {
+     int n1 = testN1s[n];
+     int n2 = nSam - n1;
+     NumericMatrix k1k2 = rcppExpandGridFromZero(n1, n2);
+     NumericVector k1 = k1k2( _ , 0 );
+     NumericVector k2 = k1k2( _ , 1 );
+  //   arma::sp_mat n1mat = sfsTable[n];
+  //   Rcout << n1 << " is the current n1 " << std::endl;
+  //   nPhiSVector = phi_S_alphad_lookupGenerator_C(n1,k1,n2,k2,n1mat,alphaD, 1);
+  // }
+  return(phiSout);
 }
 
 
