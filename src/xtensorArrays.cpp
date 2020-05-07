@@ -64,7 +64,7 @@ double p_jH_C(NumericVector pvec, int j, int H, int n){
 }
 
 // [[Rcpp::export]]
-double p_Phi_Selection_second_term_inner_left(int n1, int k1, int n2, int k2, const arma::sp_mat& ptable,int i){
+double p_Phi_Selection_second_term_inner_left(int n1, int k1, int n2, int k2, NumericMatrix ptable,int i){
   double returnValue = 0;
   if (k1+1-n1+i <= 0) {
     return(returnValue);
@@ -76,7 +76,7 @@ double p_Phi_Selection_second_term_inner_left(int n1, int k1, int n2, int k2, co
 }
 
 // [[Rcpp::export]]
-double p_Phi_Selection_second_term_inner_right(int n1, int k1, int n2, int k2,const arma::sp_mat& ptable, int i){
+double p_Phi_Selection_second_term_inner_right(int n1, int k1, int n2, int k2, NumericMatrix ptable, int i){
   double returnValue = 0;
   if (1+i-k1 <= 0) {
     return(returnValue);
@@ -140,10 +140,6 @@ NumericVector phi_S_alphad_lookupGenerator_C(int n1, NumericVector k1, int n2, N
   }
   return(outputVector);
 }
-
-
-
-
 
 // [[Rcpp::export]]
 xt::rarray<double> makePhiSTable(int nSam, NumericVector testN1s, NumericMatrix ptable, NumericVector alphad, double beta) {
