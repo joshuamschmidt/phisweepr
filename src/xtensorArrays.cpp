@@ -37,10 +37,12 @@ NumericMatrix groupInfo( NumericMatrix geno_Matrix, int coreIdx) {
   return(groupInfo);
 }
 
-
-
-
 // phiS porbability functions
+// [[Rcpp::export]]
+double probEscape_Single_C(double alpha, double beta, double d){
+  return(1-beta*exp(-alpha*std::abs(d)));
+}
+
 // [[Rcpp::export]]
 double probEscape_Sample_C(int n, int k, double alpha, double d, double beta){
   double returnValue = 0;
