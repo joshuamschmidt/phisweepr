@@ -44,6 +44,17 @@ double probEscape_Single_C(double alpha, double beta, double d){
 }
 
 // [[Rcpp::export]]
+NumericVector probEscape_Single_C_plot(double alpha, double beta, NumericVector d){
+  NumericVector outvec(d.size(), 0);
+  for(int i=0;i<d.size();i++){
+    outvec(i) = 1-beta*exp(-alpha*std::abs(d(i)));
+  }
+  return(outvec);
+}
+
+
+
+// [[Rcpp::export]]
 double probEscape_Sample_C(int n, int k, double alpha, double d, double beta){
   double returnValue = 0;
   double prob_escape = 1-beta*exp(-alpha*std::abs(d));
