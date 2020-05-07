@@ -189,7 +189,7 @@ xt::rarray<double> makePhiSTable(int nSam, IntegerVector testN1s, NumericMatrix 
   xt::rarray<double> phiSout = xt::zeros<double>(shape);
   // claculate phiS and
   // NumericVector nPhiSVector(1);
-   for(int n =0; n < 6; n++ ) {
+   for(int n =0; n < 8; n++ ) {
      int n1 = testN1s[n];
      int n2 = nSam - n1;
      NumericMatrix k1k2 = rcppExpandGridFromZero(n1, n2);
