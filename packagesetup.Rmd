@@ -83,8 +83,6 @@ source('R/utilityFunctions.R')
 Rcpp::sourceCpp('src/rcpp_sfs_functions.cpp')
 Rcpp::sourceCpp('src/xtensorArrays.cpp')
 
-one_dimensional_sfs <- get_sfs(example.data$genotypes, fixed_derived = FALSE)
-mutation_rate <- theta_from_pi(one_dimensional_sfs[["derived_allele_counts"]],nSam = example.data$sample.size, locusLength = example.data$locusLength)
 ```
 
 
@@ -95,6 +93,9 @@ whether to use all sites or only polymorphic sites (and within that the use of f
 
 ```{r Vy + Kim generation of equilibirum SFS, fig.height= 5, fig.width= 15}
 load("data/example.data.rda")
+one_dimensional_sfs <- get_sfsDcountList(example.data$genotypes, fixed_derived = FALSE)
+mutation_rate <- theta_from_pi(one_dimensional_sfs[["derived_allele_counts"]],nSam = example.data$sample.size, locusLength = example.data$locusLength)
+
 dataObject <- example.data
 example.data[["derived_allele_counts"]] <- Matrix::diff(dataObject$genotypes@p)
 n1Min <- round(dataObject$sample.size*0.25)
