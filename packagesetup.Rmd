@@ -114,8 +114,16 @@ obs.cond.2d.sfsL <- get_two_dimensionalSFSlist(dataObject = dataObject,n1Min = 1
 #sfsCube <- listMatricesToArmaCube(obs.cond.2d.sfsL,n1Min,n1Max)
 nkMatrix <- getSfs_perN_from_two_dimensionalSFSlist(two_dimensionalSFSlist = obs.cond.2d.sfsL,monomorphic = FALSE,fixedDerived = FALSE)
 
-
-
+# calculate phiS!
+getPhiS <- function(dataObject, nkMatrix, n1range, alphaDres=1,beta=1){
+  nSam=dataObject$sample.size
+  alphad_seq = seq.log10(0.001, 10, length.out = alphaDres*100+2, add.zero = TRUE)
+  log10_alphad=log10(alphad_seq)
+  
+  # pass 10^log10_alphaD to phiS functions.
+  
+}
+#alphaDres c(1,2,4)
 
 ## assumed equilibirum sfs
 neutralExpSfsCube <- standardNeutralJointSFSArmaCube(CbTable = binomial.coeffs,pHomo = pHomo, n1Min = n1Min, n1Max = n1Max, nSam = dataObject$sample.size,theta = mutation_rate, monomorphic = FALSE,fixedDerived = FALSE)
