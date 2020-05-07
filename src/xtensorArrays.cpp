@@ -158,7 +158,7 @@ NumericVector phi_S_alphad_lookupGenerator_C(int n1, NumericVector k1, int n2, N
 xt::rarray<double> makePhiSTable(int nSam, NumericVector testN1s, NumericMatrix ptable, NumericVector alphad, double beta) {
    // get dimensions of objects
   int nN1 = testN1s.size();
-  int maxN1 = max(testN1s);
+  //int maxN1 = max(testN1s);
   unsigned long int n_rows = nSam+1;
   unsigned long int n_cols = nSam+1;
   unsigned long int n_matrices = nN1;
@@ -178,11 +178,19 @@ xt::rarray<double> makePhiSTable(int nSam, NumericVector testN1s, NumericMatrix 
      NumericMatrix k1k2 = rcppExpandGridFromZero(n1, n2);
      NumericVector k1 = k1k2( _ , 0 );
      NumericVector k2 = k1k2( _ , 1 );
-     for(int i=0; i <nAlphad;i++)
+     for(int i=0; i <nAlphad;i++){
+       // vector comes out col by col....
        NumericVector alphadPhiS = phi_S_alphad_lookupGenerator_C(n1,k1,n2,k2,ptable,alphad[i], beta);
-  // }
-  return(phiSout);
+       //phiSout( all(), all(), n, i) = NumericMatrix(n2+1, n1+1, alphadPhiS.begin());
+       unsigned long int sub_n_rows = nSam+1-n1;
+       unsigned long int sub_n_cols = nSam+1-n2;
+       const xt::rarray<double>::shape_type& shape = { sub_n_rows, sub_n_cols };
+       auto submatrix = xt::view(phiSout, xt::all(), xt::all(), n ,i);
+       submatrix = xt::adapt(alphadPhiS, shape);
+       //xt::view(phiSout,  xt::all(),xt::all(),n, i) = NumericMatrix(n2+1, n1+1, alphadPhiS.begin());
+     }
   }
+  return(phiSout);
 }
 
 
