@@ -139,22 +139,26 @@ arma::cube standardNeutralJointSFSArmaCube(const arma::sp_mat& CbTable, NumericV
 }
 
 // [[Rcpp::export]]
-arma::cube listMatricesToArmaCube(Rcpp::List sfslist, int n1Min, int n1Max) {
+arma::cube listMatricesToArmaCube(Rcpp::List sfslist, NumericVector n1Range, int nSam) {
   // create a cube structre (3d array)
   // slices are n1 counts, scaled so that the first slice is n1Min
   // colums are k1, rows are k2 counts.
   // so n1, k1, k2 => cube(k2, k1, n1)
+  // the sfs list has size nSam + 1
+  // sfs list has length 
   int sfslistSize = sfslist.size();
-  int n_rows = n1Max + 1; // rows hold k2
+  int n_rows = nSam + 1; // rows hold k2
   int n_cols = n_rows; // cols hold k1
-  int n_slices = n1Max - n1Min + 1; // length range of n1 values to be tested
+  
+  int n_slices = max(n1Range) - min(n1Range) + 1; // length range of n1 values to be tested
   // error check? is slice dimension size correct
-  if (n_slices != sfslistSize) {
-    stop("check that n1 range and length of sfslist match");
-  }
+  // if (n_slices != sfslistSize) {
+  //   stop("check that n1 range and length of sfslist match");
+  // }
   arma::cube sfsCube(n_rows, n_cols, n_slices);
   for(int i=0; i< n_slices; i++) {
-    arma::sp_mat nMatrix = sfslist[i];
+    int slice = n1Range(i)-1;
+    arma::sp_mat nMatrix = sfslist[slice];
     sfsCube.slice(i) = nMatrix;
   }
   //arma::sp_mat M = sfslist[15];
