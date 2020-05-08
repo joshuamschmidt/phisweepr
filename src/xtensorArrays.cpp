@@ -208,13 +208,17 @@ xt::rarray<double> makePhiSTable(int nSam, IntegerVector testN1s, NumericMatrix 
        //     phiSout(j,k,n,i) = alphadPhiS(offset+k);
        //   }
        // }
+       int phiSSize = alphadPhiS.size();
        int offset = 0;
        for(int k=0;k<=n1;k++){
          if(k > 0){
            offset = k*(n2+1);
          }
          for(int j=0;j<=n2;j++){
-           phiSout(j,k,n,i) = alphadPhiS(offset+j);
+           if(phiSSize >= (offset+j)){
+             phiSout(j,k,n,i) = alphadPhiS(offset+j);
+           }
+           
          }
        }
        // //phiSout( all(), all(), n, i) = NumericMatrix(n2+1, n1+1, alphadPhiS.begin());
