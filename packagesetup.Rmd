@@ -119,7 +119,8 @@ nkMatrix <- getSfs_perN_from_two_dimensionalSFSlist(two_dimensionalSFSlist = obs
 # calculate phiS!
 
 n1range <- n1Min:n1Max
-getPhiS <- function(dataObject, nkMatrix, n1range, alphaDres=1,beta=1){
+alphaDres=1
+getPhiS <- function(dataObject, nkMatrix, n1range, alphaDres=alphaDres,beta=1){
   nSam=dataObject$sample.size
   alphad_seq = seq.log10(0.001, 10, length.out = alphaDres*100+2, add.zero = TRUE)
   log10_alphad=log10(alphad_seq)
@@ -129,6 +130,10 @@ getPhiS <- function(dataObject, nkMatrix, n1range, alphaDres=1,beta=1){
 }
 #alphaDres c(1,2,4)
 # plot escape probabilty curve
+calcAlpha <- function(N,r,s) {
+    alpha <- (r*log(2*N))/s
+    return(log10(alpha))
+}
 
 
 s<-c(0.005,0.001)
@@ -147,20 +152,17 @@ neutralExpSfsCube[,,8]
 ```{r convert obs cube slice to data.table and plot}
 cols <- viridis(10)
 # can convert a slice to a long formatDT
-obsSFSlong <- sfsMatrixToLongDT(sfsMatrix =  sfsCube[,,8],
-                              n1 = 15,
-                              nSam = dataObject$sample.size)
+obsSFSlong <- matrixToLongDT(obs.cond.2d.sfsL[[16]],n1 = 15,n2 = 15)
 pObs <- ggplot(obsSFSlong, aes(k1, k2)) +
-  geom_tile(aes(fill = log10(frequency))) +
+  geom_tile(aes(fill = log10(pr))) +
   scale_fill_gradientn(colours = cols) + coord_equal()
 ```
 
 ```{r convert exp cube slice to data.table and plot}
-expSFSlong <- sfsMatrixToLongDT(sfsMatrix = neutralExpSfsCube[,,8],
-                              n1 = 15,
-                              nSam = dataObject$sample.size)
+expSFSlong <- matrixToLongDT(neutralExpSfsCube[,,8],n1 = 15,n2 = 15)
+
 pExp <- ggplot(expSFSlong, aes(k1, k2)) +
-  geom_tile(aes(fill = log10(frequency))) +
+  geom_tile(aes(fill = log10(pr))) +
   scale_fill_gradientn(colours = cols) + coord_equal()
 ```
 
@@ -169,12 +171,36 @@ pExp <- ggplot(expSFSlong, aes(k1, k2)) +
 setkey(obsSFSlong,n1,k1,k2)
 setkey(expSFSlong,n1,k1,k2) 
 comSFSlong <- obsSFSlong[expSFSlong]
-comSFSlong[,residual:=frequency-i.frequency]
+comSFSlong[,residual:=pr-i.pr]
 pRes <- ggplot(comSFSlong, aes(k1, k2)) +
   geom_tile(aes(fill = residual)) +
   scale_fill_gradientn(colours = cols) + coord_equal()
 
 plot_grid(pExp, pObs, pRes,nrow = 1,labels = c('expected', 'observed', 'residuals: obs-exp'),align = "hv")
+```
+
+
+
+```{r after selection}
+neartosweep <- matrixToLongDT(phiSTable[,,4,1],11,19)
+midtosweep <- matrixToLongDT(phiSTable[,,4,51],11,19)
+fartosweep <- matrixToLongDT(phiSTable[,,4,102],11,19)
+
+
+pNear <- ggplot(neartosweep, aes(k1, k2)) +
+  geom_tile(aes(fill = log10(pr))) +
+  scale_fill_gradientn(colours = cols) + coord_equal()
+  
+pMid <- ggplot(midtosweep, aes(k1, k2)) +
+  geom_tile(aes(fill = log10(pr))) +
+  scale_fill_gradientn(colours = cols) + coord_equal()
+  
+pFar <- ggplot(fartosweep, aes(k1, k2)) +
+  geom_tile(aes(fill = log10(pr))) +
+  scale_fill_gradientn(colours = cols) + coord_equal()
+  pdf(file = 'effect.sweep.pdf',width = 18,height = 5)
+  plot_grid(pFar, pMid, pNear,nrow = 1,labels = c('far', 'midway', 'near'),align = "hv")
+  dev.off()
 ```
 
 
