@@ -119,11 +119,9 @@ nkMatrix <- getSfs_perN_from_two_dimensionalSFSlist(two_dimensionalSFSlist = obs
 
 # calculate phiN
 # from observed
-sfsCube <- listMatricesToArmaCube(obs.cond.2d.sfsL,n1Min,n1Max)
-# from equilibrium demography 
-## assumed equilibirum sfs
-neutralExpSfsCube <- standardNeutralJointSFSArmaCube(CbTable = binomial.coeffs,pHomo = pHomo, n1Min = n1Min, n1Max = n1Max, nSam = dataObject$sample.size,theta = mutation_rate, monomorphic = FALSE,fixedDerived = FALSE)
-neutralExpSfsCube[,,8]
+obsPhiNTable <- listMatricesToArmaCube(sfslist = obs.cond.2d.sfsL,n1Range = n1range,nSam = dataObject$sample.size)
+# assumed equilibirum sfs
+expPhiNTable <- standardNeutralJointSFSArmaCube(CbTable = binomial.coeffs,pHomo = pHomo, n1Min = n1Min, n1Max = n1Max, nSam = dataObject$sample.size,theta = mutation_rate, monomorphic = FALSE,fixedDerived = FALSE)
 
 # calculate phiS!
 
