@@ -215,7 +215,7 @@ xt::rarray<double> makePhiSTable(int nSam, IntegerVector testN1s, NumericMatrix 
            offset = k*(n2+1);
          }
          for(int j=0;j<=n2;j++){
-           if(phiSSize >= (offset+j)){
+           if(phiSSize > (offset+j)){
              phiSout(j,k,n,i) = alphadPhiS(offset+j);
            }
            
