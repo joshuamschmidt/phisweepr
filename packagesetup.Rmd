@@ -74,6 +74,7 @@ library(data.table)
 library(ggplot2)
 library(viridis)
 library(cowplot)
+library(Matrix)
 # genome object is example.data
 # idea is to have a toplevel function 'calculate_SFSs', which returns a list object with 1-d SFS, 2-d SFS, empirical and theoretocal 
 # have to estimate the mutation rate. using pi.
@@ -100,6 +101,7 @@ dataObject <- example.data
 example.data[["derived_allele_counts"]] <- Matrix::diff(dataObject$genotypes@p)
 n1Min <- round(dataObject$sample.size*0.25)
 n1Max <- round(dataObject$sample.size*0.75)
+n1range <- n1Min:n1Max
 binomial.coeffs <- CbTable(dataObject$sample.size)
 subP <- subPop_freqSpec(binomial.coeffs,dataObject$sample.size)
 pHomo <- calc_pHomo(binomial.coeffs,dataObject$sample.size,n1Max,n1Min)
@@ -113,12 +115,19 @@ unlist(lapply(1:31, function(x) all.equal(subP[x,],subP_2[x,],tolerance = 2e-7))
 # i have two functions. one returns a single DT, the other a list of matrices.
 #obs.cond.2d.sfs <- get_two_dimensionalSFSDT(dataObject = dataObject,n1Min = 1,n1Max = 30,monomorphic = FALSE,fixedDerived = FALSE)
 obs.cond.2d.sfsL <- get_two_dimensionalSFSlist(dataObject = dataObject,n1Min = 1,n1Max = 30,monomorphic = FALSE,fixedDerived = FALSE)
-#sfsCube <- listMatricesToArmaCube(obs.cond.2d.sfsL,n1Min,n1Max)
 nkMatrix <- getSfs_perN_from_two_dimensionalSFSlist(two_dimensionalSFSlist = obs.cond.2d.sfsL,monomorphic = FALSE,fixedDerived = FALSE)
+
+# calculate phiN
+# from observed
+sfsCube <- listMatricesToArmaCube(obs.cond.2d.sfsL,n1Min,n1Max)
+# from equilibrium demography 
+## assumed equilibirum sfs
+neutralExpSfsCube <- standardNeutralJointSFSArmaCube(CbTable = binomial.coeffs,pHomo = pHomo, n1Min = n1Min, n1Max = n1Max, nSam = dataObject$sample.size,theta = mutation_rate, monomorphic = FALSE,fixedDerived = FALSE)
+neutralExpSfsCube[,,8]
 
 # calculate phiS!
 
-n1range <- n1Min:n1Max
+
 alphaDres=1
 getPhiS <- function(dataObject, nkMatrix, n1range, alphaDres=alphaDres,beta=1){
   nSam=dataObject$sample.size
@@ -142,9 +151,6 @@ for(i in seq_along(s)) {
     curve(probEscape_Single_C_plot(10^calcAlpha(1e3,1e-8,s[i]),beta = 1,d=x),-0.5e6,0.5e6,n = 500, add=i!=1, col=col[i], main="Reduction of diveristy due to a selective sweep",lwd=2.5,ylab='Pr. escape a sweep',xlab='distance from sweep (bp)')
 }
 legend('right',legend = s, col=col, lty=1,title = 'selection coefficient',bty='n')
-## assumed equilibirum sfs
-neutralExpSfsCube <- standardNeutralJointSFSArmaCube(CbTable = binomial.coeffs,pHomo = pHomo, n1Min = n1Min, n1Max = n1Max, nSam = dataObject$sample.size,theta = mutation_rate, monomorphic = FALSE,fixedDerived = FALSE)
-neutralExpSfsCube[,,8]
 
 
 ```
