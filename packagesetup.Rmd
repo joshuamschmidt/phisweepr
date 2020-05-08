@@ -81,9 +81,10 @@ library(Matrix)
 #load_all()
 source('R/sfs_functions.R')
 source('R/utilityFunctions.R')
+source('R/MLconfig_functions.R')
 Rcpp::sourceCpp('src/rcpp_sfs_functions.cpp')
-Rcpp::sourceCpp('src/xtensorArrays.cpp')
-
+Rcpp::sourceCpp('src/armaCubeFields.cpp')
+Rcpp::sourceCpp('src/MLconfig_cpp_functions.cpp')
 ```
 
 
@@ -98,7 +99,7 @@ one_dimensional_sfs <- get_sfsDcountList(example.data$genotypes, fixed_derived =
 mutation_rate <- theta_from_pi(one_dimensional_sfs[["derived_allele_counts"]],nSam = example.data$sample.size, locusLength = example.data$locusLength)
 
 dataObject <- example.data
-example.data[["derived_allele_counts"]] <- Matrix::diff(dataObject$genotypes@p)
+dataObject[["derived_allele_counts"]] <- Matrix::diff(dataObject$genotypes@p)
 n1Min <- round(dataObject$sample.size*0.25)
 n1Max <- round(dataObject$sample.size*0.75)
 n1range <- n1Min:n1Max
@@ -125,7 +126,6 @@ expPhiNTable <- standardNeutralJointSFSArmaCube(CbTable = binomial.coeffs,pHomo 
 
 # calculate phiS!
 
-
 alphaDres=1
 getPhiS <- function(dataObject, nkMatrix, n1range, alphaDres=alphaDres,beta=1){
   nSam=dataObject$sample.size
@@ -133,8 +133,45 @@ getPhiS <- function(dataObject, nkMatrix, n1range, alphaDres=alphaDres,beta=1){
   log10_alphad=log10(alphad_seq)
   phiSTable <- makePhiSTable(nSam = nSam,testN1s = n1range, ptable = nkMatrix, alphad = 10^log10_alphad,1)
   # pass 10^log10_alphaD to phiS functions.
-  
 }
+
+# define params for ML calculation
+# first is resolution of alpha maximisiation
+alpha_levels <- c(-6,-2,40)
+pEscapeLim = 0.9 # 90% pescape of a single lineage
+alphad_max_d <- maxd_byAlpha(alphaParVec=alpha_levels,pEscapeLim = 0.9)
+
+# define sites to ML
+core_snps_idxs <- which(dataObject$derived_allele_counts %in% n1range)
+low_alpha <- -6
+# sel_idx <- which(dataObject$phys_pos==round(dataObject$locusLength/2))
+# sel_idx %in% core_snps_idxs
+test_dens <- 1
+
+#ml_phir
+
+core_idx = core_snps_idxs[100]
+n1 <- dataObject$derived_allele_counts[core_idx]
+n2 <- dataObject$sample.size - n1
+core_pos <- dataObject$phys_pos[core_idx]
+core_window_idxs <- which(abs(dataObject$phys_pos-core_pos) <= distance_pESingle_C(10^low_alpha,1,pEscapeLim) )
+# idx of core within core_window_idxs
+core_idx_in_window <- which(core_window_idxs==core_idx)
+#core_n1 <- test$n1counts[core_snps_idxs[i]]
+rowslice <- which(dataObject$genotypes[,core_idx]!=0)
+k1 <- factor(diff(dataObject$genotypes[rowslice,core_window_idxs]@p),levels = 0:n1)[-core_idx_in_window]
+k2 <- factor(diff(dataObject$genotypes[-rowslice,core_window_idxs]@p),levels = 0:n2)[-core_idx_in_window]
+pos.vec <- dataObject$phys_pos[core_window_idxs][-core_idx_in_window]
+dist.vec <- abs(pos.vec-core_pos)
+# got all my k1 and k2 counts now.....
+partition_k_counts[,pos:= pos_vec[core_window_idxs]]
+    
+    # add position relative to core snp.
+
+
+```
+
+```{r }
 #alphaDres c(1,2,4)
 # plot escape probabilty curve
 calcAlpha <- function(N,r,s) {
