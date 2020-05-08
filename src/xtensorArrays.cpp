@@ -198,17 +198,7 @@ xt::rarray<double> makePhiSTable(int nSam, IntegerVector testN1s, NumericMatrix 
      for(int i=0; i <nAlphad;i++){
        // vector comes out col by col....
        NumericVector alphadPhiS = phi_S_alphad_lookupGenerator_C(n1,k1,n2,k2,ptable,alphad[i], beta);
-       // loop j k over the vector to fill the
-       // for(int j=0;j<=n2;j++){
-       //   int offset = 0;
-       //   if(j > 0){
-       //    offset = j*n1+1;
-       //   }
-       //   for(int k=0;k<=n1;k++){
-       //     phiSout(j,k,n,i) = alphadPhiS(offset+k);
-       //   }
-       // }
-       int phiSSize = alphadPhiS.size();
+       int phiSSize = alphadPhiS.length();
        int offset = 0;
        for(int k=0;k<=n1;k++){
          if(k > 0){
@@ -218,6 +208,10 @@ xt::rarray<double> makePhiSTable(int nSam, IntegerVector testN1s, NumericMatrix 
            if(phiSSize > (offset+j)){
              phiSout(j,k,n,i) = alphadPhiS(offset+j);
            }
+           // if(n1==15){
+           //   int totaloff = offset+j;
+           //   Rcout << "phiSvector is " << phiSSize << " long, but offset + j is " << totaloff  << std::endl;
+           // }
            
          }
        }
