@@ -38,8 +38,6 @@ NumericVector probEscape_Single_C_plot(double alpha, double beta, NumericVector 
   return(outvec);
 }
 
-
-
 // [[Rcpp::export]]
 double probEscape_Sample_C(int n, int k, double alpha, double d, double beta){
   double returnValue = 0;
@@ -47,6 +45,39 @@ double probEscape_Sample_C(int n, int k, double alpha, double d, double beta){
   returnValue = R::dbinom(k, n, prob_escape, false);
   return(returnValue);
 }
+
+// [[Rcpp::export]]
+Rcpp::NumericVector subsetKcountWindow_probEscape_C(std::vector<int> d, double alpha, double beta, double peCutoff){
+  int ls=0;
+  int rs=d.size()+1;
+  double pe = 1.0;
+  // from the left side
+  std::vector<int>::iterator i = d.begin();
+  for(; i != d.end(); ++i) {
+    ++ls;
+    pe = probEscape_Single_C(alpha,beta, *i);
+    if( pe < peCutoff) {
+      // terminate the loop
+      break;
+    }
+  }
+  // from the right side
+  std::vector<int>::reverse_iterator j = d.rbegin();
+  for(; j != d.rend(); ++j) {
+    --rs;
+    pe = probEscape_Single_C(alpha,beta, *j);
+    if( pe < peCutoff) {
+      // terminate the loop
+      break;
+    }
+  }
+  NumericVector subset_window = NumericVector::create(ls,rs);
+  return(subset_window);
+}
+
+
+
+
 
 // [[Rcpp::export]]
 double p_jH_C(NumericVector pvec, int j, int H, int n){
@@ -163,13 +194,13 @@ NumericVector phi_S_alphad_lookupGenerator_C(int n1, NumericVector k1, int n2, N
 //   return phiSSubMat;
 // }
 
-// [[Rcpp::export]]
-SEXP vec_to_matrix(NumericVector x_, int n_row, int n_col) {
-  std::vector<double> x = as< std::vector<double> >(x_);
-  NumericVector output = wrap(x);
-  output.attr("dim") = Dimension(n_row, n_col);
-  return output;
-}
+// // [[Rcpp::export]]
+// SEXP vec_to_matrix(NumericVector x_, int n_row, int n_col) {
+//   std::vector<double> x = as< std::vector<double> >(x_);
+//   NumericVector output = wrap(x);
+//   output.attr("dim") = Dimension(n_row, n_col);
+//   return output;
+// }
 
 
 // [[Rcpp::export]]

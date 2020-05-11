@@ -85,6 +85,7 @@ source('R/MLconfig_functions.R')
 Rcpp::sourceCpp('src/rcpp_sfs_functions.cpp')
 Rcpp::sourceCpp('src/armaCubeFields.cpp')
 Rcpp::sourceCpp('src/MLconfig_cpp_functions.cpp')
+Rcpp::sourceCpp('src/ML_compute_cpp.cpp')
 ```
 
 
@@ -126,11 +127,13 @@ expPhiNTable <- standardNeutralJointSFSArmaCube(CbTable = binomial.coeffs,pHomo 
 
 # calculate phiS!
 
-alphaDres=1
+alphaDres=4
 getPhiS <- function(dataObject, nkMatrix, n1range, alphaDres=alphaDres,beta=1){
   nSam=dataObject$sample.size
   alphad_seq = seq.log10(0.001, 10, length.out = alphaDres*100+2, add.zero = TRUE)
-  log10_alphad=log10(alphad_seq)
+  log10_alphad=round(log10(alphad_seq),2)
+  nlog10_alphad = 0:(length(log10_alphad)-1)
+  names(nlog10_alphad) = log10_alphad
   phiSTable <- makePhiSTable(nSam = nSam,testN1s = n1range, ptable = nkMatrix, alphad = 10^log10_alphad,1)
   # pass 10^log10_alphaD to phiS functions.
 }
@@ -138,8 +141,8 @@ getPhiS <- function(dataObject, nkMatrix, n1range, alphaDres=alphaDres,beta=1){
 # define params for ML calculation
 # first is resolution of alpha maximisiation
 alpha_levels <- c(-6,-2,40)
-pEscapeLim = 0.9 # 90% pescape of a single lineage
-alphad_max_d <- maxd_byAlpha(alphaParVec=alpha_levels,pEscapeLim = 0.9)
+pEscapeLim = 0.5 # 90% pescape of a single lineage
+alphad_max_d <- maxd_byAlpha(alphaParVec=alpha_levels,pEscapeLim = pEscapeLim)
 
 # define sites to ML
 core_snps_idxs <- which(dataObject$derived_allele_counts %in% n1range)
@@ -149,8 +152,7 @@ low_alpha <- -6
 test_dens <- 1
 
 #ml_phir
-
-core_idx = core_snps_idxs[100]
+core_idx = core_snps_idxs[170]
 n1 <- dataObject$derived_allele_counts[core_idx]
 n2 <- dataObject$sample.size - n1
 core_pos <- dataObject$phys_pos[core_idx]
@@ -159,10 +161,50 @@ core_window_idxs <- which(abs(dataObject$phys_pos-core_pos) <= distance_pESingle
 core_idx_in_window <- which(core_window_idxs==core_idx)
 #core_n1 <- test$n1counts[core_snps_idxs[i]]
 rowslice <- which(dataObject$genotypes[,core_idx]!=0)
-k1 <- factor(diff(dataObject$genotypes[rowslice,core_window_idxs]@p),levels = 0:n1)[-core_idx_in_window]
-k2 <- factor(diff(dataObject$genotypes[-rowslice,core_window_idxs]@p),levels = 0:n2)[-core_idx_in_window]
+k1 <- factorToInt(factor(diff(dataObject$genotypes[rowslice,core_window_idxs]@p),levels = 0:n1)[-core_idx_in_window])
+k2 <- factorToInt(factor(diff(dataObject$genotypes[-rowslice,core_window_idxs]@p),levels = 0:n2)[-core_idx_in_window])
 pos.vec <- dataObject$phys_pos[core_window_idxs][-core_idx_in_window]
 dist.vec <- abs(pos.vec-core_pos)
+# then into ml function; brute force
+# above is defined the maximumm window. as we move along alpha, this window reduces and we trim it.
+# setups grid for LratioCalcPhi
+#optimFun parVec= c(10^x[1], x[2])
+parVec= c(10^-6,1)
+
+test_alpha <- round(parVec[1],10)
+test_beta <- parVec[2]
+alpha_core_sub_idxs <- subsetKcountWindow_probEscape_C(dist.vec,test_alpha,test_beta,pEscapeLim)
+if (alpha_core_sub_idxs[2]-alpha_core_sub_idxs[1] < 6) {
+  return(1) # check this is the right value to return!
+}
+
+sub_partition_k1_counts <- k1[alpha_core_sub_idxs[1]:alpha_core_sub_idxs[2]]
+sub_partition_k2_counts <- k2[alpha_core_sub_idxs[1]:alpha_core_sub_idxs[2]]
+sub_dist.vec <- dist.vec[alpha_core_sub_idxs[1]:alpha_core_sub_idxs[2]]
+sub_alphaD.vec = round(log10(sub_dist.vec*test_alpha), 2);
+sub_alphaD.vec[which(sub_alphaD.vec < log10_alphad[2])] <- log10_alphad[1]
+sub_alphaD.vec[which(sub_alphaD.vec > log10_alphad[length(log10_alphad)])] <- log10_alphad[length(log10_alphad)]
+sub_alphaD_idx <- match(sprintf("%0.2f", sub_alphaD.vec), sprintf("%0.2f", log10_alphad))-1
+## monomorphoc positions!
+log(getProbVector(phitable = phiSTable, n1 = n1, minN1 = 8,k1 = k1,k2 = k2,sub_alphaD_idx = sub_alphaD_idx))
+
+log10_alphad
+# procedure for adding monomorphic sites! only if option!
+sub_partition_k_counts <- addMonomorphicPhiS(sub_partition_k_counts,
+                                                 mono_sites)
+# fold the distances. think this was to reduce the number of discrete sites....
+maxd <- alphad_comb_list[[1]][alpha==eval(test_alpha),max_d]
+sub_partition_k_counts[d > maxd,d:=maxd]
+
+#
+LLvec_neu <- log(phiN_hash[[sub_partition_k_counts[,paste(eval(n1),k1,
+                                                              eval(n2),k2)]]])
+    sub_partition_k_counts<- sub_partition_k_counts[d!=0,log10_alphad:=round(alphad_comb_list[[2]][[paste(test_beta,test_alpha,d)]],2) ]
+   
+
+
+
+
 # got all my k1 and k2 counts now.....
 partition_k_counts[,pos:= pos_vec[core_window_idxs]]
     
