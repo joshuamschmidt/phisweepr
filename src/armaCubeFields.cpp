@@ -163,6 +163,24 @@ NumericVector phi_S_alphad_lookupGenerator_C(int n1, NumericVector k1, int n2, N
 //   return phiSSubMat;
 // }
 
+// [[Rcpp::export]]
+SEXP vec_to_matrix(NumericVector x_, int n_row, int n_col) {
+  std::vector<double> x = as< std::vector<double> >(x_);
+  NumericVector output = wrap(x);
+  output.attr("dim") = Dimension(n_row, n_col);
+  return output;
+}
+
+
+// [[Rcpp::export]]
+arma::mat vec_to_arma_mat(NumericVector x_, int n_row, int n_col) {
+  std::vector<double> x = as< std::vector<double> >(x_);
+  NumericVector X = wrap(x);
+  X.attr("dim") = Dimension(n_row, n_col);
+  arma::mat output(X.begin(), n_row, n_col, false);
+  return output;
+}
+
 
 
 // [[Rcpp::export]]
@@ -172,18 +190,19 @@ arma::field<arma::cube> makePhiSTable(int nSam, NumericVector testN1s, NumericMa
   //int maxN1 = max(testN1s);
   int n_rows = nSam+1;
   int n_cols = nSam+1;
-  int n_matrices = nN1;
   int nAlphad = alphad.size();
   // check dimensions and sizes of inputs match
   if(n_rows != ptable.nrow() || ptable.nrow() != ptable.ncol()){
     Rcpp::stop("check that input matrices are square\n and/or dimensions match the sample size");
   }
   // create field of cubes phiS
-  arma::field<arma::cube> phiStable(nAlphad);
-  phiStable.fill(arma::cube(n_rows, n_cols, nN1, arma::fill::zeros));
+  arma::field<arma::cube> phiStable(nN1);
+  //phiStable.fill(arma::cube(n_rows, n_cols, nAlphad, arma::fill::zeros));
   for(int n =0; n < nN1; n++ ) {
     int n1 = testN1s[n];
     int n2 = nSam - n1;
+    // make cube for N
+    arma::cube nCube(n2+1, n1+1, nAlphad, arma::fill::zeros);
     // submatrixview X
     NumericMatrix k1k2 = rcppExpandGridFromZero(n1, n2);
     NumericVector k1 = k1k2( _ , 0 );
@@ -191,17 +210,20 @@ arma::field<arma::cube> makePhiSTable(int nSam, NumericVector testN1s, NumericMa
     for(int i=0; i <nAlphad;i++){
       // vector comes out col by col....
       NumericVector alphadPhiS = phi_S_alphad_lookupGenerator_C(n1,k1,n2,k2,ptable,alphad[i], beta);
-      int phiSSize = alphadPhiS.length();
-      int offset = 0;
-      for(int k=0;k<=n1;k++){
-        if(k > 0){
-          offset = k*(n2+1);
-        }
-        for(int j=0;j<=n2;j++){
-            phiStable[i](j,k,n) = alphadPhiS(offset+j);
-        }
-      }
+      arma::mat alphadPhiSMat = vec_to_arma_mat(alphadPhiS,n2+1,n1+1);
+      nCube.slice(i) = alphadPhiSMat;
+      // int phiSSize = alphadPhiS.length();
+      // int offset = 0;
+      // for(int k=0;k<=n1;k++){
+      //   if(k > 0){
+      //     offset = k*(n2+1);
+      //   }
+      //   for(int j=0;j<=n2;j++){
+      //       phiStable[i](j,k,n) = alphadPhiS(offset+j);
+      //   }
+      // }
     }
+    phiStable[n] = nCube;
   }
   return(phiStable);
 }
