@@ -212,16 +212,6 @@ arma::field<arma::cube> makePhiSTable(int nSam, NumericVector testN1s, NumericMa
       NumericVector alphadPhiS = phi_S_alphad_lookupGenerator_C(n1,k1,n2,k2,ptable,alphad[i], beta);
       arma::mat alphadPhiSMat = vec_to_arma_mat(alphadPhiS,n2+1,n1+1);
       nCube.slice(i) = alphadPhiSMat;
-      // int phiSSize = alphadPhiS.length();
-      // int offset = 0;
-      // for(int k=0;k<=n1;k++){
-      //   if(k > 0){
-      //     offset = k*(n2+1);
-      //   }
-      //   for(int j=0;j<=n2;j++){
-      //       phiStable[i](j,k,n) = alphadPhiS(offset+j);
-      //   }
-      // }
     }
     phiStable[n] = nCube;
   }
