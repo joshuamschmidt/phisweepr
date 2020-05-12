@@ -82,6 +82,7 @@ library(viridis)
 library(cowplot)
 library(Matrix)
 library(NMOF)
+library(parallel)
 # genome object is example.data
 # idea is to have a toplevel function 'calculate_SFSs', which returns a list object with 1-d SFS, 2-d SFS, empirical and theoretocal 
 # have to estimate the mutation rate. using pi.
