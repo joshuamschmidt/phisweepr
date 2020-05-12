@@ -47,6 +47,11 @@ msms="/Users/joshua_schmidt/msms/lib/msms.jar"
 out="${HOME}/Documents/acad/acad_projects/phisweepr/inst/extdata"
 java -Xmx6G -jar ${msms} 31 1 -t 8000 -r 8000 20000001 -I 2 30 1 0.01 -SAA 200 -SaA 100  -Sc 0 2 0 0 0 -SF 0 -N 10000 -seed 101010 -Smark -Sp 0.5 -oFP 0.00000000 > ${out}/msms.selection.outgroup.txt
 
+java -Xmx6G -jar ${msms} 50 1 -t 8000 -r 8000 20000001 -SAA 1000 -SaA 500 -SF 0 0.7 -N 10000 -seed 101010 -Smark -oFP 0.00000000 > ${out}/msms.selection.50chr.s05.b07.txt
+
+
+
+
 discoal="/Users/joshua_schmidt/Documents/acad/acad_projects/selection.statistics/projectBins/discoal/discoal" 
 ${discoal} 31 1 1000000 -t 400 -r 400 -p 2 30 1 -ed 0.05 0 1 -ws 0.00 -a 200 -x 0.5 -c 0.7 -i 4 > ${out}/discoal.selection.outgroup.txt
 
@@ -61,6 +66,7 @@ discoal.data <- "/Users/joshua_schmidt/Documents/acad/acad_projects/phisweepr/in
 #example.data <- get.ms.output(ms.file = ms.data)
 example.data <- get.simulated.data(discoal.data, "discoal")
 usethis::use_data(example.data, name="simData",internal = TRUE,overwrite = TRUE)
+example.data <- get.simulated.data("/Users/joshua_schmidt/Documents/acad/acad_projects/phisweepr/inst/extdata/msms.selection.50chr.s05.b07.txt", "msms")
 ```
 
 ### NOTE *****
@@ -75,6 +81,7 @@ library(ggplot2)
 library(viridis)
 library(cowplot)
 library(Matrix)
+library(NMOF)
 # genome object is example.data
 # idea is to have a toplevel function 'calculate_SFSs', which returns a list object with 1-d SFS, 2-d SFS, empirical and theoretocal 
 # have to estimate the mutation rate. using pi.
@@ -82,6 +89,7 @@ library(Matrix)
 source('R/sfs_functions.R')
 source('R/utilityFunctions.R')
 source('R/MLconfig_functions.R')
+source('R/MLfunctions.R')
 Rcpp::sourceCpp('src/rcpp_sfs_functions.cpp')
 Rcpp::sourceCpp('src/armaCubeFields.cpp')
 Rcpp::sourceCpp('src/MLconfig_cpp_functions.cpp')
@@ -95,35 +103,45 @@ whether to use all sites or only polymorphic sites (and within that the use of f
 
 
 ```{r Vy + Kim generation of equilibirum SFS, fig.height= 5, fig.width= 15}
+monomorphic=FALSE
+fixedDerived=FALSE
 load("data/example.data.rda")
-one_dimensional_sfs <- get_sfsDcountList(example.data$genotypes, fixed_derived = FALSE)
-mutation_rate <- theta_from_pi(one_dimensional_sfs[["derived_allele_counts"]],nSam = example.data$sample.size, locusLength = example.data$locusLength)
-
 dataObject <- example.data
-dataObject[["derived_allele_counts"]] <- Matrix::diff(dataObject$genotypes@p)
+dataObject <- append(dataObject, get_sfsDcountList(dataObject, monomorphic=monomorphic , fixedDerived = fixedDerived))
+if(monomorphic==FALSE | fixedDerived==FALSE) {
+  dataObject <- filterDataObject(dataObject,monomorphic=monomorphic , fixedDerived = fixedDerived)
+}
+dataObject[["mutation_rate"]] <- theta_from_pi(dataObject$derived_allele_counts,nSam = dataObject$sample.size, locusLength = dataObject$locusLength)
 n1Min <- round(dataObject$sample.size*0.25)
 n1Max <- round(dataObject$sample.size*0.75)
 n1range <- n1Min:n1Max
+
+
 binomial.coeffs <- CbTable(dataObject$sample.size)
 subP <- subPop_freqSpec(binomial.coeffs,dataObject$sample.size)
 pHomo <- calc_pHomo(binomial.coeffs,dataObject$sample.size,n1Max,n1Min)
 ## can get the same thing as.....
 subP_2 <- Matrix::Matrix(do.call(rbind,lapply(0:dataObject$sample.size,function(x) {sfs <- numeric(dataObject$sample.size+1); if(x > 1) {sfs[1:x] <-  1/(0:(x-1))}; sfs[1] <- 0; sfs })),sparse = TRUE)
 # these are very close in values, down to 2e-7 at WORST.
-unlist(lapply(1:31, function(x) all.equal(subP[x,],subP_2[x,],tolerance = 2e-7)))
+unlist(lapply(1:(dataObject$sample.size+1), function(x) all.equal(subP[x,],subP_2[x,],tolerance = 2e-7)))
 
 
 ## empirical conditional SFS
 # i have two functions. one returns a single DT, the other a list of matrices.
 #obs.cond.2d.sfs <- get_two_dimensionalSFSDT(dataObject = dataObject,n1Min = 1,n1Max = 30,monomorphic = FALSE,fixedDerived = FALSE)
-obs.cond.2d.sfsL <- get_two_dimensionalSFSlist(dataObject = dataObject,n1Min = 1,n1Max = 30,monomorphic = FALSE,fixedDerived = FALSE)
-nkMatrix <- getSfs_perN_from_two_dimensionalSFSlist(two_dimensionalSFSlist = obs.cond.2d.sfsL,monomorphic = FALSE,fixedDerived = FALSE)
+obs.cond.2d.sfsL <- get_two_dimensionalSFSlist(dataObject = dataObject,n1Min = 1,n1Max = dataObject$sample.size,monomorphic = monomorphic,fixedDerived = fixedDerived)
 
+nkMatrix <- getSfs_perN_from_two_dimensionalSFSlist(two_dimensionalSFSlist = obs.cond.2d.sfsL,monomorphic = monomorphic,fixedDerived = fixedDerived)
+nkMatrixdp <- getSfs_perN_from_downprojectFullSFS(sfs = dataObject$sfs,scaled = TRUE,monomorphic = monomorphic,fixedDerived = fixedDerived)
+nkMatrixds <- getSfs_perN_from_downsampleFullSFS(dataObject = dataObject,monomorphic = monomorphic,fixedDerived = fixedDerived)
+# plot(nkMatrix[20,],pch=19,cex=0.5,ylim=c(0,0.5))
+# points(nkMatrixdp[20,],pch=19,cex=0.5,col='red')
+# points(nkMatrixds[20,],pch=19,cex=0.5,col='seagreen')
 # calculate phiN
 # from observed
 obsPhiNTable <- listMatricesToArmaCube(sfslist = obs.cond.2d.sfsL,n1Range = n1range,nSam = dataObject$sample.size)
 # assumed equilibirum sfs
-expPhiNTable <- standardNeutralJointSFSArmaCube(CbTable = binomial.coeffs,pHomo = pHomo, n1Min = n1Min, n1Max = n1Max, nSam = dataObject$sample.size,theta = mutation_rate, monomorphic = FALSE,fixedDerived = FALSE)
+expPhiNTable <- standardNeutralJointSFSArmaCube(CbTable = binomial.coeffs,pHomo = pHomo, n1Min = n1Min, n1Max = n1Max, nSam = dataObject$sample.size,theta = dataObject$mutation_rate, monomorphic = monomorphic,fixedDerived = fixedDerived)
 
 # calculate phiS!
 
@@ -132,9 +150,7 @@ getPhiS <- function(dataObject, nkMatrix, n1range, alphaDres=alphaDres,beta=1){
   nSam=dataObject$sample.size
   alphad_seq = seq.log10(0.001, 10, length.out = alphaDres*100+2, add.zero = TRUE)
   log10_alphad=round(log10(alphad_seq),2)
-  nlog10_alphad = 0:(length(log10_alphad)-1)
-  names(nlog10_alphad) = log10_alphad
-  phiSTable <- makePhiSTable(nSam = nSam,testN1s = n1range, ptable = nkMatrix, alphad = 10^log10_alphad,1)
+  phiSTable <- makePhiSTable(nSam = nSam,testN1s = n1range, ptable = nkMatrixds, alphad = 10^log10_alphad,1)
   # pass 10^log10_alphaD to phiS functions.
 }
 
@@ -147,63 +163,21 @@ alphad_max_d <- maxd_byAlpha(alphaParVec=alpha_levels,pEscapeLim = pEscapeLim)
 # define sites to ML
 core_snps_idxs <- which(dataObject$derived_allele_counts %in% n1range)
 low_alpha <- -6
-# sel_idx <- which(dataObject$phys_pos==round(dataObject$locusLength/2))
-# sel_idx %in% core_snps_idxs
-test_dens <- 1
-
-#ml_phir
-core_idx = core_snps_idxs[170]
-n1 <- dataObject$derived_allele_counts[core_idx]
-n2 <- dataObject$sample.size - n1
-core_pos <- dataObject$phys_pos[core_idx]
-core_window_idxs <- which(abs(dataObject$phys_pos-core_pos) <= distance_pESingle_C(10^low_alpha,1,pEscapeLim) )
-# idx of core within core_window_idxs
-core_idx_in_window <- which(core_window_idxs==core_idx)
-#core_n1 <- test$n1counts[core_snps_idxs[i]]
-rowslice <- which(dataObject$genotypes[,core_idx]!=0)
-k1 <- factorToInt(factor(diff(dataObject$genotypes[rowslice,core_window_idxs]@p),levels = 0:n1)[-core_idx_in_window])
-k2 <- factorToInt(factor(diff(dataObject$genotypes[-rowslice,core_window_idxs]@p),levels = 0:n2)[-core_idx_in_window])
-pos.vec <- dataObject$phys_pos[core_window_idxs][-core_idx_in_window]
-dist.vec <- abs(pos.vec-core_pos)
-# then into ml function; brute force
-# above is defined the maximumm window. as we move along alpha, this window reduces and we trim it.
-# setups grid for LratioCalcPhi
-#optimFun parVec= c(10^x[1], x[2])
-parVec= c(10^-6,1)
-
-test_alpha <- round(parVec[1],10)
-test_beta <- parVec[2]
-alpha_core_sub_idxs <- subsetKcountWindow_probEscape_C(dist.vec,test_alpha,test_beta,pEscapeLim)
-if (alpha_core_sub_idxs[2]-alpha_core_sub_idxs[1] < 6) {
-  return(1) # check this is the right value to return!
-}
-
-sub_partition_k1_counts <- k1[alpha_core_sub_idxs[1]:alpha_core_sub_idxs[2]]
-sub_partition_k2_counts <- k2[alpha_core_sub_idxs[1]:alpha_core_sub_idxs[2]]
-sub_dist.vec <- dist.vec[alpha_core_sub_idxs[1]:alpha_core_sub_idxs[2]]
-sub_alphaD.vec = round(log10(sub_dist.vec*test_alpha), 2);
-sub_alphaD.vec[which(sub_alphaD.vec < log10_alphad[2])] <- log10_alphad[1]
-sub_alphaD.vec[which(sub_alphaD.vec > log10_alphad[length(log10_alphad)])] <- log10_alphad[length(log10_alphad)]
-sub_alphaD_idx <- match(sprintf("%0.2f", sub_alphaD.vec), sprintf("%0.2f", log10_alphad))-1
-## monomorphoc positions!
-log(getProbVector(phitable = phiSTable, n1 = n1, minN1 = 8,k1 = k1,k2 = k2,sub_alphaD_idx = sub_alphaD_idx))
-
-log10_alphad
-# procedure for adding monomorphic sites! only if option!
-sub_partition_k_counts <- addMonomorphicPhiS(sub_partition_k_counts,
-                                                 mono_sites)
-# fold the distances. think this was to reduce the number of discrete sites....
-maxd <- alphad_comb_list[[1]][alpha==eval(test_alpha),max_d]
-sub_partition_k_counts[d > maxd,d:=maxd]
-
-#
-LLvec_neu <- log(phiN_hash[[sub_partition_k_counts[,paste(eval(n1),k1,
-                                                              eval(n2),k2)]]])
-    sub_partition_k_counts<- sub_partition_k_counts[d!=0,log10_alphad:=round(alphad_comb_list[[2]][[paste(test_beta,test_alpha,d)]],2) ]
-   
-
-
-
+maxLRatio_table <- data.table()
+system.time(for (core_idx in core_snps_idxs){
+  ml <- ml_phir(core_idx = core_idx,
+                  dataObject = dataObject,
+                  phiNTable = obsPhiNTable,
+                  phiSTable = phiSTable,
+                  alpha_levels=alpha_levels,
+                  pEscapeLim = pEscapeLim,
+                  method="bruteforce",
+                  log10_alphad.vec = log10_alphad,
+                  low_alpha=low_alpha,
+                  monomorphic = monomorphic,
+                  minN1 = n1range[1])
+    maxLRatio_table <- rbindlist(list(maxLRatio_table,ml))
+})
 
 # got all my k1 and k2 counts now.....
 partition_k_counts[,pos:= pos_vec[core_window_idxs]]

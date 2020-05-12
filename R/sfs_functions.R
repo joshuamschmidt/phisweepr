@@ -4,10 +4,21 @@
 #' @return A vector: A numeric vector of the derived allele counts from \code{genotype_matrix}
 #' @examples
 #' get_sfs(genotype_matrix)
-get_DACount <- function(genotype_matrix){
-  derived_allele_counts <- Matrix::diff(genotype_matrix@p)
-  return(derived_allele_counts)
+get_DACount <- function(dataObject, monomorphic=FALSE, fixed_derived = FALSE){
+  # max n, use factor to get all counts...
+  maxN <- dim(dataObject$genotypes)[1]
+  derived_allele_counts <- factor(dataObject$derived_allele_counts,levels = 0:maxN)
+  sfs <- table(derived_allele_counts)
+  if ( monomorphic == FALSE ){
+    sfs[1] <- 0
+  }
+  if( fixed_derived == FALSE ){
+    sfs[length(sfs)] <- 0
+  }
+  sfs <- as.vector(sfs/sum(sfs))
+  return(sfs)
 }
+
 
 #' Calculate the 1-d SFS and derived allele count.
 #'
@@ -18,20 +29,26 @@ get_DACount <- function(genotype_matrix){
 #' sfs from  \code{genotype_matrix}
 #' @examples
 #' get_sfs(genotype_matrix, fixed_sites = FALSE)
-get_sfsDcountList <- function(genotype_matrix, monomorphic=FALSE, fixed_derived = FALSE){
+get_sfsDcountList <- function(dataObject, monomorphic=FALSE, fixedDerived = FALSE){
   # max n, use factor to get all counts...
-  maxN <- dim(genotype_matrix)[1]
+  maxN <- dim(dataObject$genotypes)[1]
   #derived_allele_counts <- Matrix::diff(genotype_matrix@p)
-  derived_allele_counts <- factor(Matrix::diff(genotype_matrix@p),levels = 0:maxN)
+  derived_allele_counts <- factor(Matrix::diff(dataObject$genotypes@p),levels = 0:maxN)
   sfs <- table(derived_allele_counts)
   if ( monomorphic == FALSE ){
     sfs[1] <- 0
   }
-  if( fixed_derived == FALSE ){
+  if( fixedDerived == FALSE ){
     sfs[length(sfs)] <- 0
   }
+  if ( monomorphic == TRUE) {
+    n.no.derived <- length(which(derived_allele_counts == 0))
+    # therefore the number of monomorphic positions is...
+    n.monomorphic <- dataObject$phys_pos[length(dataObject$phys_pos)] - dataObject$phys_pos[1] - length(derived_allele_counts) + n.no.derived
+    sfs[1] <- n.monomorphic
+  }
   sfs <- as.vector(sfs/sum(sfs))
-  list(derived_allele_counts=derived_allele_counts, sfs=sfs)
+  list(derived_allele_counts=factorToInt(derived_allele_counts), sfs=sfs)
 }
 #' Estimate the mutation rate
 #'
@@ -118,19 +135,12 @@ get_two_dimensionalSFSlist <- function(dataObject,
                                    fixedDerived=FALSE){
   # this may be unconventional, as I store these as k2,k1 matrices.
   # define output matrix
-  # outMatrix <- Matrix::Matrix(0,nrow = dataObject$sample.size+1, ncol =  dataObject$sample.size+1,sparse = F)
-  derived_allele_counts <- Matrix::diff(dataObject$genotypes@p)
-  # how many sits are due to outgroup (monomorphic but in the genoMatrix)
-  n.no.derived <- length(which(derived_allele_counts == 0))
-  # therefore the number of monomorphic positions is...
-  n.monomorphic <- dataObject$phys_pos[length(dataObject$phys_pos)] - dataObject$phys_pos[1] - length(derived_allele_counts) + n.no.derived
-  
   # matirx only needs ot cover range 0..n1Max = n1Max+1
   outMatrix <- Matrix::Matrix(0,nrow = n1Max+1, ncol =  n1Max+1,sparse = T)
   # we need n1Max -n1Min + 1
   outList <- rep(list(outMatrix),n1Max - n1Min + 1)
-  for(i in seq_along(derived_allele_counts)) {
-    n1 <- derived_allele_counts[i]
+  for(i in seq_along(dataObject$derived_allele_counts)) {
+    n1 <- dataObject$derived_allele_counts[i]
     if (n1 >= n1Min && n1 <= n1Max) {
       n <- n1 - n1Min + 1 # relative n, to find which list slice stores the n1 matrix.
       n2 <- dataObject$sample.size - n1
@@ -144,10 +154,18 @@ get_two_dimensionalSFSlist <- function(dataObject,
       } else{ k2 <- factor(diff(dataObject$genotypes[-rowslice,]@p),levels = 0:n1Max)[-i] }
       subSFS <- unclass(table(k2,k1))
       if(monomorphic == TRUE && fixedDerived== TRUE) {
-        subSFS[1,1] <- n.monomorphic - subSFS[n2+1,n1+1]
+        n.no.derived <- subSFS[1,1]
+        n.derived <- sum(subSFS) - subSFS[1,1]
+        # therefore the number of monomorphic positions is...
+        n.monomorphic <- dataObject$phys_pos[length(dataObject$phys_pos)] - dataObject$phys_pos[1] - n.derived + n.no.derived
+        subSFS[1,1] <- n.monomorphic
       }
       if(monomorphic == TRUE && fixedDerived== FALSE) {
+        n.no.derived <- subSFS[1,1]
+        n.f.derived <- subSFS[n2+1,n1+1]
         subSFS[n2+1,n1+1] <- 0
+        n.derived <- sum(subSFS) - subSFS[1,1]
+        n.monomorphic <- dataObject$phys_pos[length(dataObject$phys_pos)] - dataObject$phys_pos[1] - n.derived + n.no.derived - n.f.derived
         subSFS[1,1] <- n.monomorphic
       }
       if(monomorphic == FALSE && fixedDerived== FALSE) {
@@ -156,8 +174,13 @@ get_two_dimensionalSFSlist <- function(dataObject,
       }
       outList[[n]] <- outList[[n]] + subSFS
     }
+    
   }
   outList <- lapply(outList, function(x) x/sum(x))
+  if(fixedDerived== FALSE){
+    outList[[dataObject$sample.size]] <- Matrix::Matrix(0,nrow = n1Max+1, ncol =  n1Max+1,sparse = T)
+    outList[[dataObject$sample.size]][1,] <- dataObject$sfs
+  }
   return(outList)
 }
 
@@ -220,6 +243,96 @@ sfsMatrixToLongDT <- function(sfsMatrix, n1, nSam) {
   return(outDT)
 } 
 
+filterDataObject <- function(dataObject, monomorphic= FALSE, fixedDerived= FALSE) {
+  if(monomorphic == FALSE && fixedDerived == FALSE) {
+    unfiltered_idxs <- which(dataObject$derived_allele_counts!=0 & dataObject$derived_allele_counts!=dataObject$sample.size)
+  }
+  if(monomorphic == FALSE && fixedDerived == TRUE) {
+    unfiltered_idxs <- which(dataObject$derived_allele_counts!=0)
+  }
+  if(fixedDerived == FALSE && monomorphic == TRUE) {
+    unfiltered_idxs <- which(dataObject$derived_allele_counts!=dataObject$sample.size)
+  }
+  if(fixedDerived == TRUE && monomorphic == TRUE) {
+    return(dataObject)
+  }
+  dataObject$phys_pos <- dataObject$phys_pos[unfiltered_idxs]
+  dataObject$gen_pos <- dataObject$gen_pos[unfiltered_idxs]
+  dataObject$genotypes <- dataObject$genotypes[,unfiltered_idxs]
+  dataObject$derived_allele_counts <- dataObject$derived_allele_counts[unfiltered_idxs]
+  return(dataObject)
+}
 
 
 
+
+
+getSfs_perN_from_downprojectFullSFS <- function(sfs,scaled=TRUE,monomorphic= FALSE, fixedDerived= FALSE){
+  n = length(sfs) - 1
+  list_neutral_sfs = lapply(1:n, function(x) {sfs_raw = p_jH_vec_C(pvec = sfs, j = 0:x, H = x, n = n)})
+  #names(list_neutral_sfs) = 1:n
+  if(monomorphic == FALSE && fixedDerived == FALSE) {
+    list_neutral_sfs <- mapply(function(x, i)  {x[1]<-0;x[i+1]<-0; return(x);}, list_neutral_sfs, seq_along(list_neutral_sfs),SIMPLIFY = FALSE )
+    }
+  if(monomorphic == FALSE && fixedDerived == TRUE) {
+    list_neutral_sfs <- mapply(function(x, i)  {x[1]<-0; return(x);}, list_neutral_sfs, seq_along(list_neutral_sfs),SIMPLIFY = FALSE )
+  }
+  if(fixedDerived == FALSE && monomorphic == TRUE) {
+    list_neutral_sfs <- mapply(function(x, i)  {x[i+1]<-0; return(x);}, list_neutral_sfs, seq_along(list_neutral_sfs),SIMPLIFY = FALSE )
+  }
+  list_neutral_sfs <- append(list_neutral_sfs, list('0'=0), 0)
+  sfs_Matrix <- matrix(0.0,nrow=length(sfs),ncol=length(sfs))
+  for(i in 1:length(list_neutral_sfs)) {
+    # so R 1 is cpp 0/SFS n0
+    n_sfs <- list_neutral_sfs[[i]]
+    if(scaled==TRUE & i > 2){
+      n_sfs <- n_sfs/sum(n_sfs)
+    }
+    sfs_Matrix[i, 1:length(n_sfs)] <- n_sfs
+  }
+  return(sfs_Matrix)
+}
+
+
+getSfs_perN_from_downsampleFullSFS <- function(dataObject,monomorphic= FALSE, fixedDerived= FALSE){
+  n = dim(dataObject$genotypes)[1]
+  nvec=1:n
+  list_neutral_sfs = mapply(sfsResampleGenotypeMatrix, i=nvec, nSam=n,MoreArgs=list(genotypes=dataObject$genotypes,phys_pos=dataObject$phys_pos,monomorphic,fixedDerived),SIMPLIFY = FALSE )
+  list_neutral_sfs <- append(list_neutral_sfs, list('0'=0), 0)
+  sfs_Matrix <- matrix(0.0,nrow=n+1,ncol=n+1)
+  for(i in 1:length(list_neutral_sfs)) {
+    # so R 1 is cpp 0/SFS n0
+    n_sfs <- list_neutral_sfs[[i]]
+    # if(scaled==TRUE & i > 2){
+    #   n_sfs <- n_sfs/sum(n_sfs)
+    # }
+    sfs_Matrix[i, 1:length(n_sfs)] <- n_sfs
+  }
+  return(sfs_Matrix)
+}
+
+
+sfsResampleGenotypeMatrix <- function(genotypes,phys_pos,i, nSam,monomorphic=FALSE,fixedDerived=FALSE){
+  rowslice <- sort(sample(1:nSam,size = i,replace = FALSE))
+  if(i==1){
+    sfs=table(genotypes[rowslice,])
+  } else{sfs=table(factor(diff(genotypes[rowslice,]@p),levels = 0:i))}
+  # check that the last value, i+1 exists
+  if(monomorphic==FALSE){
+    sfs[1] <- 0
+  }
+  if(fixedDerived==FALSE){
+    sfs[i+1] <- 0
+  }
+  if(monomorphic ==TRUE) {
+    n.no.derived <- sfs[1]
+    n.derived <- sum(sfs[-1])
+    # therefore the number of monomorphic positions is...
+    n.monomorphic <-phys_pos[length(phys_pos)] - phys_pos[1] - n.derived + n.no.derived
+    sfs[1] <- n.monomorphic
+  }
+  if(i>1){
+    sfs <- sfs/sum(sfs)
+  }
+  return(sfs)
+}

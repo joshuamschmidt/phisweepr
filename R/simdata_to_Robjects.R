@@ -66,12 +66,14 @@ get.ms.output <- function(ms.file = NA) {
     if (tail(raw, 1) == "") {
       raw = head(raw, -1)
     }
-    if (split.com[match("-I", split.com) + 1] == 2) {
-      offset <- as.integer(split.com[match("-I", split.com) + 3])
-      sample.size <- as.integer(split.com[match("-I", split.com) + 2])
-    } else if (is.na(split.com[match("-I", split.com)])) {
+    if (is.na(split.com[match("-I", split.com)])) {
       offset <- 0
       sample.size <- as.integer(split.com[[2]])
+    } else if (!is.na(split.com[match("-I", split.com)])) {
+        if (split.com[match("-I", split.com) + 1] == 2) {
+          offset <- as.integer(split.com[match("-I", split.com) + 3])
+          sample.size <- as.integer(split.com[match("-I", split.com) + 2])
+        }
     }
     geno = Matrix::Matrix(t(sapply(raw[7:(length(raw) - offset)], function(x)
       as.numeric(strsplit(x, split = "")[[1]]), USE.NAMES = F)),

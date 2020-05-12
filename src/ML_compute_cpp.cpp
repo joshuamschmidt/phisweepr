@@ -17,6 +17,18 @@ NumericVector getProbVectorPhiS(arma::field<arma::cube> phitable, int n1, int mi
 }
 
 // [[Rcpp::export]]
+NumericVector getProbVectorPhiS_mono(arma::field<arma::cube> phitable, int n1, int minN1, NumericVector sub_alphaD_idx){
+
+  NumericVector outvec(sub_alphaD_idx.size(), 0);
+  int n=n1-minN1;
+  arma::cube nCube = phitable[n];
+  for(int i=0; i<sub_alphaD_idx.size();i++){
+    outvec[i] = nCube(0,0,sub_alphaD_idx[i]);
+  }
+  return (outvec);
+}
+
+// [[Rcpp::export]]
 NumericVector getProbVectorPhiN(arma::cube phitable, int n1, int minN1, NumericVector k1, NumericVector k2){
   if(k1.size()!=k2.size()){
     stop("vectors k1 and k2 are not the same length!");
@@ -25,6 +37,16 @@ NumericVector getProbVectorPhiN(arma::cube phitable, int n1, int minN1, NumericV
   int n=n1-minN1;
   for(int i=0; i<k1.size();i++){
     outvec[i] = phitable(k2[i],k1[i],n);
+  }
+  return (outvec);
+}
+
+// [[Rcpp::export]]
+NumericVector getProbVectorPhiN_mono(arma::cube phitable, int n1, int minN1, int nSites){
+  NumericVector outvec(nSites);
+  int n=n1-minN1;
+  for(int i=0; i<nSites;i++){
+    outvec[i] = phitable(0,0,n);
   }
   return (outvec);
 }

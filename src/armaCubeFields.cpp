@@ -46,6 +46,9 @@ double probEscape_Sample_C(int n, int k, double alpha, double d, double beta){
   return(returnValue);
 }
 
+
+
+
 // [[Rcpp::export]]
 Rcpp::NumericVector subsetKcountWindow_probEscape_C(std::vector<int> d, double alpha, double beta, double peCutoff){
   int ls=0;

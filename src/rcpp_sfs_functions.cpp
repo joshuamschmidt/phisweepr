@@ -205,12 +205,25 @@ std::vector<arma::cube> vectorCubes(int n1Min, int n1Max, int nSam, const arma::
   return outVecCube;
 }
 
-
 // [[Rcpp::export]]
-Rcpp::NumericVector mDimVector(NumericVector dimensions){
-  Rcpp::NumericVector vec = Rcpp::NumericVector( Rcpp::Dimension(dimensions));
-  //int dims = vec.attr("dim");
-  return vec;
+NumericVector p_jH_vec_C(NumericVector pvec, NumericVector jvec, int H, int n){
+  int pvec_size = pvec.size();
+  int jvec_size = jvec.size();
+  if (pvec_size != n+1) return(-9999);
+  NumericVector returnVector(jvec_size);
+  for (int jindex=0; jindex<jvec_size; ++jindex) {
+    double returnValue = 0;
+    if (jvec(jindex)<0 || jvec(jindex)>H) {
+      returnVector(jindex) = 0;
+    } else {
+      for (int i=jvec(jindex); i<=n; ++i) {
+        returnValue += pvec(i)* (R::dhyper(jvec(jindex), i, n-i, H, false));
+      }
+      returnVector(jindex) = returnValue;
+    }
+  }
+  return(returnVector);
 }
-  
+
+
 
