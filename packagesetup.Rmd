@@ -66,7 +66,7 @@ discoal.data <- "/Users/joshua_schmidt/Documents/acad/acad_projects/phisweepr/in
 #example.data <- get.ms.output(ms.file = ms.data)
 example.data <- get.simulated.data(discoal.data, "discoal")
 usethis::use_data(example.data, name="simData",internal = TRUE,overwrite = TRUE)
-example.data <- get.simulated.data("/Users/joshua_schmidt/Documents/acad/acad_projects/phisweepr/inst/extdata/msms.selection.50chr.s05.b07.txt", "msms")
+example.data <- get.simulated.data("/Users/joshuaschmidtProjects/phisweepr/inst/extdata/msms.selection.50chr.s05.b07.txt", "msms")
 ```
 
 ### NOTE *****
@@ -127,22 +127,26 @@ subP_2 <- Matrix::Matrix(do.call(rbind,lapply(0:dataObject$sample.size,function(
 unlist(lapply(1:(dataObject$sample.size+1), function(x) all.equal(subP[x,],subP_2[x,],tolerance = 2e-7)))
 
 
-## empirical conditional SFS
-# i have two functions. one returns a single DT, the other a list of matrices.
-#obs.cond.2d.sfs <- get_two_dimensionalSFSDT(dataObject = dataObject,n1Min = 1,n1Max = 30,monomorphic = FALSE,fixedDerived = FALSE)
-obs.cond.2d.sfsL <- get_two_dimensionalSFSlist(dataObject = dataObject,n1Min = 1,n1Max = dataObject$sample.size,monomorphic = monomorphic,fixedDerived = fixedDerived)
+## conditional 2d-SFS
+# from observed
+obs.cond.2d.sfsL <- get_two_dimensionalSFSlist(dataObject = dataObject,n1Min = 1,n1Max = dataObject$sample.size,monomorphic = monomorphic,fixedDerived = fixedDerived) # this function is SLOW
+obsPhiNTable <- listMatricesToArmaCube(sfslist = obs.cond.2d.sfsL,n1Range = n1range,nSam = dataObject$sample.size)
+# assumed equilibirum sfs
+expPhiNTable <- standardNeutralJointSFSArmaCube(CbTable = binomial.coeffs,pHomo = pHomo, n1Min = n1Min, n1Max = n1Max, nSam = dataObject$sample.size,theta = dataObject$mutation_rate, monomorphic = monomorphic,fixedDerived = fixedDerived)
 
+# a matrix relating derived allele n, and k i.e rows are n=0,...n=samplesize, cols are k=0...k=n1
+# three ways to estimate this.
+# as above, condition sites on n1 count, and then see SFS of given N. summed across all sites of n
 nkMatrix <- getSfs_perN_from_two_dimensionalSFSlist(two_dimensionalSFSlist = obs.cond.2d.sfsL,monomorphic = monomorphic,fixedDerived = fixedDerived)
+# downproject from the full sample size SFS
 nkMatrixdp <- getSfs_perN_from_downprojectFullSFS(sfs = dataObject$sfs,scaled = TRUE,monomorphic = monomorphic,fixedDerived = fixedDerived)
+# down sample from the full sample size genotype array
 nkMatrixds <- getSfs_perN_from_downsampleFullSFS(dataObject = dataObject,monomorphic = monomorphic,fixedDerived = fixedDerived)
+
 # plot(nkMatrix[20,],pch=19,cex=0.5,ylim=c(0,0.5))
 # points(nkMatrixdp[20,],pch=19,cex=0.5,col='red')
 # points(nkMatrixds[20,],pch=19,cex=0.5,col='seagreen')
 # calculate phiN
-# from observed
-obsPhiNTable <- listMatricesToArmaCube(sfslist = obs.cond.2d.sfsL,n1Range = n1range,nSam = dataObject$sample.size)
-# assumed equilibirum sfs
-expPhiNTable <- standardNeutralJointSFSArmaCube(CbTable = binomial.coeffs,pHomo = pHomo, n1Min = n1Min, n1Max = n1Max, nSam = dataObject$sample.size,theta = dataObject$mutation_rate, monomorphic = monomorphic,fixedDerived = fixedDerived)
 
 # calculate phiS!
 
