@@ -20,12 +20,6 @@ get.simulated.data <- function(sim.file = NA, software = NA, fixed_derived = FAL
       returnlist <- get.ms.output(sim.file)
     } else {} 
   }
-  # add SFS information
-  one_dimensional_sfs <- get_sfs(returnlist$genotypes, fixed_derived)
-  mutation_rate <- estimate_mu(one_dimensional_sfs[["derived_allele_counts"]],returnlist)
-  returnlist[["derived_allele_counts"]] <- one_dimensional_sfs$derived_allele_counts
-  returnlist[["one_dimensional_sfs"]] <- one_dimensional_sfs$sfs
-  returnlist[["mutation_rate"]] <- mutation_rate
   return(returnlist)
 }
 
