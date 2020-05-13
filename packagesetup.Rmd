@@ -189,7 +189,10 @@ low_alpha <- -6
 
 system.time(mc_maxLRatio_table <- mcmapply(ml_phir,core_snps_idxs, MoreArgs = list(dataObject = dataObject,phiNTable = expPhiNTable,phiSTable = phiSTable,alpha_levels=alpha_levels,pEscapeLim = pEscapeLim,method="bruteforce",log10_alphad.vec = log10_alphad,low_alpha=low_alpha,monomorphic = monomorphic,minN1 = n1range[1]),SIMPLIFY = FALSE,mc.cores = 4))
 
+maxLRatioDT <- data.table(matrix(unlist(mc_maxLRatio_table), nrow=length(mc_maxLRatio_table), byrow=T))
 data.table(matrix(unlist(mc_maxLRatio_table), nrow=length(mc_maxLRatio_table), byrow=T))
+data.table(matrix(unlist(mc_maxLRatio_table), nrow=length(mc_maxLRatio_table), byrow=T))[,plot(V6,V5)]
+data.table(matrix(unlist(mc_maxLRatio_table), nrow=length(mc_maxLRatio_table), byrow=T))[V6==15e6]
 ```
 
 ```{r }
