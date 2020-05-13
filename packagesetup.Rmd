@@ -47,7 +47,7 @@ msms="/Users/joshua_schmidt/msms/lib/msms.jar"
 out="${HOME}/Documents/acad/acad_projects/phisweepr/inst/extdata"
 java -Xmx6G -jar ${msms} 31 1 -t 8000 -r 8000 20000001 -I 2 30 1 0.01 -SAA 200 -SaA 100  -Sc 0 2 0 0 0 -SF 0 -N 10000 -seed 101010 -Smark -Sp 0.5 -oFP 0.00000000 > ${out}/msms.selection.outgroup.txt
 
-java -Xmx6G -jar ${msms} 50 1 -t 8000 -r 8000 20000001 -SAA 1000 -SaA 500 -SF 0 0.7 -N 10000 -seed 101010 -Smark -oFP 0.00000000 > ${out}/msms.selection.50chr.s05.b07.txt
+java -Xmx6G -jar ${msms} 50 1 -t 8000 -r 8000 20000001 -SAA 1000 -SaA 500 -SF 0 0.7 -N 10000 -seed 101010 -Sp 0.5 -Smark -oFP 0.00000000 > ${out}/msms.selection.50chr.s05.b07.txt
 
 
 
@@ -66,7 +66,7 @@ discoal.data <- "/Users/joshua_schmidt/Documents/acad/acad_projects/phisweepr/in
 #example.data <- get.ms.output(ms.file = ms.data)
 example.data <- get.simulated.data(discoal.data, "discoal")
 usethis::use_data(example.data, name="simData",internal = TRUE,overwrite = TRUE)
-example.data <- get.simulated.data("/Users/joshuaschmidtProjects/phisweepr/inst/extdata/msms.selection.50chr.s05.b07.txt", "msms")
+example.data <- get.simulated.data("/Users/joshuaschmidt/Projects/phisweepr/inst/extdata/msms.selection.50chr.s1.b07.txt", "msms")
 ```
 
 ### NOTE *****
@@ -83,6 +83,8 @@ library(cowplot)
 library(Matrix)
 library(NMOF)
 library(parallel)
+options(scipen=999)
+
 # genome object is example.data
 # idea is to have a toplevel function 'calculate_SFSs', which returns a list object with 1-d SFS, 2-d SFS, empirical and theoretocal 
 # have to estimate the mutation rate. using pi.
@@ -113,8 +115,8 @@ if(monomorphic==FALSE | fixedDerived==FALSE) {
   dataObject <- filterDataObject(dataObject,monomorphic=monomorphic , fixedDerived = fixedDerived)
 }
 dataObject[["mutation_rate"]] <- theta_from_pi(dataObject$derived_allele_counts,nSam = dataObject$sample.size, locusLength = dataObject$locusLength)
-n1Min <- round(dataObject$sample.size*0.25)
-n1Max <- round(dataObject$sample.size*0.75)
+n1Min <- round(dataObject$sample.size*0.20)
+n1Max <- round(dataObject$sample.size*0.80)
 n1range <- n1Min:n1Max
 
 
@@ -157,36 +159,37 @@ points(nkMatrixds[dataObject$sample.size-5,1:(dataObject$sample.size-5)],pch=19,
 
 alphaDres <- 4
 log10_alphad <- make_log10alphad(minalpha=0.001,maxalpha=10,length.out = alphaDres*100+2)
-phiSTable <- makePhiSTable(nSam = dataObject$sample.size,testN1s = n1range,ptable = nkMatrix,alphad = 10^log10_alphad,beta = 1)
+phiSTable <- makePhiSTable(nSam = dataObject$sample.size,testN1s = n1range,ptable = nkMatrixds,alphad = 10^log10_alphad,beta = 1)
 
 
 # define params for ML calculation
 # first is resolution of alpha maximisiation
 alpha_levels <- c(-6,-2,40)
-pEscapeLim = 0.5 # 90% pescape of a single lineage
+pEscapeLim = 0.99999 # % pescape of a single lineage
 #alphad_max_d <- maxd_byAlpha(alphaParVec=alpha_levels,pEscapeLim = pEscapeLim)
 
 # define sites to ML
 core_snps_idxs <- which(dataObject$derived_allele_counts %in% n1range)
 low_alpha <- -6
-maxLRatio_table <- data.table()
-system.time(for (core_idx in core_snps_idxs){
-  ml <- ml_phir(core_idx = core_idx,
-                  dataObject = dataObject,
-                  phiNTable = obsPhiNTable,
-                  phiSTable = phiSTable,
-                  alpha_levels=alpha_levels,
-                  pEscapeLim = pEscapeLim,
-                  method="bruteforce",
-                  log10_alphad.vec = log10_alphad,
-                  low_alpha=low_alpha,
-                  monomorphic = monomorphic,
-                  minN1 = n1range[1])
-    maxLRatio_table <- rbindlist(list(maxLRatio_table,ml))
-})
+# maxLRatio_table <- data.table()
+# system.time(for (core_idx in core_snps_idxs){
+#   ml <- ml_phir(core_idx = core_idx,
+#                   dataObject = dataObject,
+#                   phiNTable = obsPhiNTable,
+#                   phiSTable = phiSTable,
+#                   alpha_levels=alpha_levels,
+#                   pEscapeLim = pEscapeLim,
+#                   method="bruteforce",
+#                   log10_alphad.vec = log10_alphad,
+#                   low_alpha=low_alpha,
+#                   monomorphic = monomorphic,
+#                   minN1 = n1range[1])
+#     maxLRatio_table <- rbindlist(list(maxLRatio_table,ml))
+# })
 
-system.time(mc_maxLRatio_table <- mcmapply(ml_phir,core_snps_idxs, MoreArgs = list(dataObject = dataObject,phiNTable = obsPhiNTable,phiSTable = phiSTable,alpha_levels=alpha_levels,pEscapeLim = pEscapeLim,method="bruteforce",log10_alphad.vec = log10_alphad,low_alpha=low_alpha,monomorphic = monomorphic,minN1 = n1range[1]),SIMPLIFY = FALSE,mc.cores = 4))
+system.time(mc_maxLRatio_table <- mcmapply(ml_phir,core_snps_idxs, MoreArgs = list(dataObject = dataObject,phiNTable = expPhiNTable,phiSTable = phiSTable,alpha_levels=alpha_levels,pEscapeLim = pEscapeLim,method="bruteforce",log10_alphad.vec = log10_alphad,low_alpha=low_alpha,monomorphic = monomorphic,minN1 = n1range[1]),SIMPLIFY = FALSE,mc.cores = 4))
 
+data.table(matrix(unlist(mc_maxLRatio_table), nrow=length(mc_maxLRatio_table), byrow=T))
 ```
 
 ```{r }
