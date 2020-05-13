@@ -184,6 +184,7 @@ system.time(for (core_idx in core_snps_idxs){
     maxLRatio_table <- rbindlist(list(maxLRatio_table,ml))
 })
 
+mc_maxLRatio_table <- mcmapply(ml_phir,core_snps_idxs, MoreArgs = list(dataObject = dataObject,phiNTable = obsPhiNTable,phiSTable = phiSTable,alpha_levels=alpha_levels,pEscapeLim = pEscapeLim,method="bruteforce",log10_alphad.vec = log10_alphad,low_alpha=low_alpha,monomorphic = monomorphic,minN1 = n1range[1]))
 # got all my k1 and k2 counts now.....
 partition_k_counts[,pos:= pos_vec[core_window_idxs]]
     
