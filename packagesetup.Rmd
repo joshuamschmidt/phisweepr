@@ -130,10 +130,13 @@ unlist(lapply(1:(dataObject$sample.size+1), function(x) all.equal(subP[x,],subP_
 ## conditional 2d-SFS
 # from observed
 obs.cond.2d.sfsL <- get_two_dimensionalSFSlist(dataObject = dataObject,n1Min = 1,n1Max = dataObject$sample.size,monomorphic = monomorphic,fixedDerived = fixedDerived) # this function is SLOW
+# calculate phiN
+# could try rewritting as mapply or mcmapply process.
 obsPhiNTable <- listMatricesToArmaCube(sfslist = obs.cond.2d.sfsL,n1Range = n1range,nSam = dataObject$sample.size)
 # assumed equilibirum sfs
 expPhiNTable <- standardNeutralJointSFSArmaCube(CbTable = binomial.coeffs,pHomo = pHomo, n1Min = n1Min, n1Max = n1Max, nSam = dataObject$sample.size,theta = dataObject$mutation_rate, monomorphic = monomorphic,fixedDerived = fixedDerived)
 
+# calculate phiS
 # a matrix relating derived allele n, and k i.e rows are n=0,...n=samplesize, cols are k=0...k=n1
 # three ways to estimate this.
 # as above, condition sites on n1 count, and then see SFS of given N. summed across all sites of n
@@ -143,27 +146,25 @@ nkMatrixdp <- getSfs_perN_from_downprojectFullSFS(sfs = dataObject$sfs,scaled = 
 # down sample from the full sample size genotype array
 nkMatrixds <- getSfs_perN_from_downsampleFullSFS(dataObject = dataObject,monomorphic = monomorphic,fixedDerived = fixedDerived)
 
-# plot(nkMatrix[20,],pch=19,cex=0.5,ylim=c(0,0.5))
-# points(nkMatrixdp[20,],pch=19,cex=0.5,col='red')
-# points(nkMatrixds[20,],pch=19,cex=0.5,col='seagreen')
-# calculate phiN
+midN <- round(dataObject$sample.size/2)
+plot(nkMatrix[midN+1,1:(midN+1)],pch=19,cex=0.5,ylim=c(0,0.3),ylab='pr. of sites',xlab='sf class')
+points(nkMatrixdp[midN+1,1:(midN+1)],pch=19,cex=0.5,col='red')
+points(nkMatrixds[midN+1,1:(midN+1)],pch=19,cex=0.5,col='seagreen')
 
-# calculate phiS!
+plot(nkMatrix[dataObject$sample.size-5,1:(dataObject$sample.size-5)],pch=19,cex=0.5,ylim=c(0,0.3),ylab='pr. of sites',xlab='sf class')
+points(nkMatrixdp[dataObject$sample.size-5,1:(dataObject$sample.size-5)],pch=19,cex=0.5,col='red')
+points(nkMatrixds[dataObject$sample.size-5,1:(dataObject$sample.size-5)],pch=19,cex=0.5,col='seagreen')
 
-alphaDres=4
-getPhiS <- function(dataObject, nkMatrix, n1range, alphaDres=alphaDres,beta=1){
-  nSam=dataObject$sample.size
-  alphad_seq = seq.log10(0.001, 10, length.out = alphaDres*100+2, add.zero = TRUE)
-  log10_alphad=round(log10(alphad_seq),2)
-  phiSTable <- makePhiSTable(nSam = nSam,testN1s = n1range, ptable = nkMatrixds, alphad = 10^log10_alphad,1)
-  # pass 10^log10_alphaD to phiS functions.
-}
+alphaDres <- 4
+log10_alphad <- make_log10alphad(minalpha=0.001,maxalpha=10,length.out = alphaDres*100+2)
+phiSTable <- makePhiSTable(nSam = dataObject$sample.size,testN1s = n1range,ptable = nkMatrix,alphad = 10^log10_alphad,beta = 1)
+
 
 # define params for ML calculation
 # first is resolution of alpha maximisiation
 alpha_levels <- c(-6,-2,40)
 pEscapeLim = 0.5 # 90% pescape of a single lineage
-alphad_max_d <- maxd_byAlpha(alphaParVec=alpha_levels,pEscapeLim = pEscapeLim)
+#alphad_max_d <- maxd_byAlpha(alphaParVec=alpha_levels,pEscapeLim = pEscapeLim)
 
 # define sites to ML
 core_snps_idxs <- which(dataObject$derived_allele_counts %in% n1range)
@@ -184,12 +185,7 @@ system.time(for (core_idx in core_snps_idxs){
     maxLRatio_table <- rbindlist(list(maxLRatio_table,ml))
 })
 
-mc_maxLRatio_table <- mcmapply(ml_phir,core_snps_idxs, MoreArgs = list(dataObject = dataObject,phiNTable = obsPhiNTable,phiSTable = phiSTable,alpha_levels=alpha_levels,pEscapeLim = pEscapeLim,method="bruteforce",log10_alphad.vec = log10_alphad,low_alpha=low_alpha,monomorphic = monomorphic,minN1 = n1range[1]))
-# got all my k1 and k2 counts now.....
-partition_k_counts[,pos:= pos_vec[core_window_idxs]]
-    
-    # add position relative to core snp.
-
+system.time(mc_maxLRatio_table <- mcmapply(ml_phir,core_snps_idxs, MoreArgs = list(dataObject = dataObject,phiNTable = obsPhiNTable,phiSTable = phiSTable,alpha_levels=alpha_levels,pEscapeLim = pEscapeLim,method="bruteforce",log10_alphad.vec = log10_alphad,low_alpha=low_alpha,monomorphic = monomorphic,minN1 = n1range[1]),SIMPLIFY = FALSE,mc.cores = 4))
 
 ```
 

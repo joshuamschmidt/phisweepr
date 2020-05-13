@@ -336,3 +336,17 @@ sfsResampleGenotypeMatrix <- function(genotypes,phys_pos,i, nSam,monomorphic=FAL
   }
   return(sfs)
 }
+
+make_log10alphad <- function(minalpha,maxalpha,length.out,add.zero = TRUE){
+  alphad_seq = seq.log10(minalpha, maxalpha, length.out = length.out, add.zero = TRUE)
+  log10_alphad=round(log10(alphad_seq),2)
+  return(log10_alphad)
+}
+
+alphaDres*100+2
+
+getPhiS <- function(dataObject, nkMatrix, n1range, minalpha,maxalpha,length.out,add.zero = TRUE, alphaDres=alphaDres,log10_alphad=,beta=1){
+  
+  phiSTable <- makePhiSTable(nSam = dataObject$sample.size,testN1s = n1range, ptable = nkMatrixds, alphad = 10^log10_alphad,beta)
+  return(phiSTable)
+}
