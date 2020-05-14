@@ -201,6 +201,7 @@ ggplot(maxLRatioDT, aes(x=position,y=diffSumLogs,color = site.class)) + geom_poi
 maxLRatioDT[,std:=(diffSumLogs-mean(diffSumLogs))/sd(diffSumLogs),by=n1]
 maxLRatioDT[,.(n=.N,m.diffSumLogs=mean(diffSumLogs)),by=n1][order(n1)]
 ggplot(maxLRatioDT, aes(x=position,y=std,color = site.class)) + geom_point(alpha=alpha.mod[maxLRatioDT$site.class],size=size.mod[maxLRatioDT$site.class]) + theme_bw()
+saveRDS(maxLRatioDT,file='maxLRatioDT.msms.selection.100chr.s05.b07_50mb.rds')
 ```
 
 ```{r}
