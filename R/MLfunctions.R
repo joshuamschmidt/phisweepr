@@ -34,7 +34,6 @@ ml_phir <- function(core_idx,
                                     pEscapeLim,
                                     log10_alphad.vec,
                                     monomorphic=FALSE,
-                                    mc.cores=1,
                                     returnRaw = FALSE)
   }
   mle[,core_pos:= eval(core_pos)]
@@ -54,10 +53,9 @@ maxLRatio_phi_BruteForce = function(n1,
                                     pEscapeLim,
                                     log10_alphad.vec,
                                     monomorphic=FALSE,
-                                    mc.cores = 1,
                                     returnRaw = FALSE) {
   optimFun = function(x) -LratioCalcPhi(n1,n2,k1,k2,minN1,phiNTable,phiSTable,pEscapeLim,dist.vec,log10_alphad.vec,monomorphic=FALSE,parVec= c(10^x[1], x[2]))
-  optimSol = gridSearch(fun = optimFun, levels = list(seq(alpha_levels[1],alpha_levels[2],length.out = alpha_levels[3]), 1), method = "multicore", mc.control = list(mc.cores = mc.cores),printDetail=FALSE)
+  optimSol = gridSearch(fun = optimFun, levels = list(seq(alpha_levels[1],alpha_levels[2],length.out = alpha_levels[3]), 1),printDetail=FALSE)
   #optimSol$values = log(-optimSol$values)
   optimSol$values = (-1*optimSol$values)
   if (returnRaw == TRUE) {
@@ -95,9 +93,17 @@ LratioCalcPhi = function(n1,
   sub_partition_k2_counts <- k2[alpha_core_sub_idxs[1]:alpha_core_sub_idxs[2]]
   sub_dist.vec <- dist.vec[alpha_core_sub_idxs[1]:alpha_core_sub_idxs[2]]
   sub_alphaD.vec = round(log10(sub_dist.vec*test_alpha), 2)
+  sub_alphaD.vec[which(sub_alphaD.vec==0)] <- 0 ## weird some zeros here become "-0.00" in the sprintf below, thus dont match a log10alphaD, returning NA. this is a cheap fix.
   sub_alphaD.vec[which(sub_alphaD.vec < log10_alphad.vec[2])] <- log10_alphad.vec[1]
   sub_alphaD.vec[which(sub_alphaD.vec > log10_alphad.vec[length(log10_alphad.vec)])] <- log10_alphad.vec[length(log10_alphad.vec)]
   sub_alphaD_idx <- match(sprintf("%0.2f", sub_alphaD.vec), sprintf("%0.2f", log10_alphad.vec))-1
+  # if allphaD idx==0, that is right on the sweep, and prob of SNP ==0 i.e. log returns Inf.
+  exclude <- which(sub_alphaD_idx==0)
+  if(length(exclude>=1)){
+    sub_partition_k1_counts <- sub_partition_k1_counts[-exclude]
+    sub_partition_k2_counts <- sub_partition_k2_counts[-exclude]
+    sub_alphaD_idx <- sub_alphaD_idx[-exclude]
+  }
   LLvec_sel <- (log(getProbVectorPhiS(phitable = phiSTable, n1 = n1, minN1 = minN1,k1 = sub_partition_k1_counts,k2 = sub_partition_k2_counts,sub_alphaD_idx = sub_alphaD_idx)))
   LLvec_neu <- (log(getProbVectorPhiN(phitable = phiNTable, n1 = n1, minN1 = minN1,k1 = sub_partition_k1_counts,k2 = sub_partition_k2_counts)))
   if(monomorphic==TRUE){
@@ -120,4 +126,58 @@ LratioCalcPhi = function(n1,
   # return(2*(log(CL_sel)-log(CL_neu)))
   #return(exp(sum(LLvec_sel) - sum(LLvec_neu)))
   return(sum(LLvec_sel) - sum(LLvec_neu))
+}
+
+
+
+maxLRatio_phi_BruteForce_surface = function(n1,
+                                    n2,
+                                    k1,
+                                    k2,
+                                    minN1,
+                                    dist.vec,
+                                    phiNTable,
+                                    phiSTable,
+                                    alpha_levels,
+                                    pEscapeLim,
+                                    log10_alphad.vec,
+                                    monomorphic=FALSE,
+                                    mc.cores = 1,
+                                    returnRaw = FALSE) {
+  optimFun = function(x) -LratioCalcPhi(n1,n2,k1,k2,minN1,phiNTable,phiSTable,pEscapeLim,dist.vec,log10_alphad.vec,monomorphic=FALSE,parVec= c(10^x[1], x[2]))
+  optimSol = gridSearch(fun = optimFun, levels = list(seq(alpha_levels[1],alpha_levels[2],length.out = alpha_levels[3]), 1),printDetail=FALSE)
+  surfaceDT <- data.table(LL=-1*optimSol$values,alpha=seq(alpha_levels[1],alpha_levels[2],length.out = alpha_levels[3]))
+  return(surfaceDT)
+}
+
+getMlSurface <- function(pos, dataObject,phiNTable,phiSTable,alpha_levels,pEscapeLim,method="bruteforce",log10_alphad.vec,low_alpha,monomorphic,minN1){
+  core_idx <- which(dataObject$phys_pos==pos)
+  n1 <- dataObject$derived_allele_counts[core_idx]
+  n2 <- dataObject$sample.size - n1
+  core_pos <- dataObject$phys_pos[core_idx]
+  core_window_idxs <- which(abs(dataObject$phys_pos-core_pos) <= distance_pESingle_C(10^low_alpha,1,pEscapeLim) )
+  # idx of core within core_window_idxs
+  core_idx_in_window <- which(core_window_idxs==core_idx)
+  #core_n1 <- test$n1counts[core_snps_idxs[i]]
+  rowslice <- which(dataObject$genotypes[,core_idx]!=0)
+  k1 <- diff(dataObject$genotypes[rowslice,core_window_idxs]@p)[-core_idx_in_window]
+  k2 <- diff(dataObject$genotypes[-rowslice,core_window_idxs]@p)[-core_idx_in_window]
+  pos.vec <- dataObject$phys_pos[core_window_idxs][-core_idx_in_window]
+  dist.vec <- abs(pos.vec-core_pos)
+  surface <- data.table()
+  if (method=='bruteforce'){
+    surface <- maxLRatio_phi_BruteForce_surface(n1,
+                                                n2,
+                                                k1,
+                                                k2,
+                                                minN1,
+                                                dist.vec,
+                                                phiNTable,
+                                                phiSTable,
+                                                alpha_levels,
+                                                pEscapeLim,
+                                                log10_alphad.vec,
+                                                returnRaw = FALSE)
+  }
+  return(surface)
 }
