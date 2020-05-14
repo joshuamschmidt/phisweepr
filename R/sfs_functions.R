@@ -345,8 +345,8 @@ make_log10alphad <- function(minalpha,maxalpha,length.out,add.zero = TRUE){
 
 alphaDres*100+2
 
-getPhiS <- function(dataObject, nkMatrix, n1range, minalpha,maxalpha,length.out,add.zero = TRUE, alphaDres,log10_alphad,beta=1){
-  
-  phiSTable <- makePhiSTable(nSam = dataObject$sample.size,testN1s = n1range, ptable = nkMatrixds, alphad = 10^log10_alphad,beta)
-  return(phiSTable)
-}
+# getPhiS <- function(dataObject, nkMatrix, n1range, minalpha,maxalpha,length.out,add.zero = TRUE, alphaDres,log10_alphad,beta=1){
+#   
+#   phiSTable <- makePhiSTable(nSam = dataObject$sample.size,testN1s = n1range, ptable = nkMatrixds, alphad = 10^log10_alphad,beta)
+#   return(phiSTable)
+# }
