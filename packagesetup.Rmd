@@ -74,16 +74,18 @@ dataObject <- get.simulated.data("/Users/joshuaschmidt/Projects/phisweepr/inst/e
 Check makevars file - if it has openmp, it will fuck up on mac, as clang does not support it.
 
 ```{r sfs object from genome object}
-library(devtools)
-library(usethis)
-library(roxygen2)
-library(data.table)
-library(ggplot2)
-library(viridis)
-library(cowplot)
-library(Matrix)
-library(NMOF)
-library(parallel)
+require(pacman)
+pacman::p_load(
+devtools,
+usethis,
+roxygen2,
+data.table,
+ggplot2,
+viridis,
+cowplot,
+Matrix,
+NMOF,
+parallel)
 options(scipen=999)
 
 # genome object is example.data
