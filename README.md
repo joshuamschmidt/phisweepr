@@ -17,7 +17,9 @@ viridis,
 cowplot,
 Matrix,
 NMOF,
-parallel)
+parallel,
+Rcpp,
+RcppArmadillo)
 source('R/simdata_to_Robjects.R')
 source('R/sfs_functions.R')
 source('R/utilityFunctions.R')
