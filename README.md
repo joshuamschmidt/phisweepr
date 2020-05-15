@@ -57,7 +57,11 @@ unlist(lapply(1:(dataObject$sample.size+1), function(x) all.equal(subP[x,],subP_
 
 ## conditional 2d-SFS
 # from observed
-obs.cond.2d.sfsL <- get_two_dimensionalSFSlist(dataObject = dataObject,n1Min = 1,n1Max = dataObject$sample.size,monomorphic = monomorphic,fixedDerived = fixedDerived) # this function is SLOW
+obs.cond.2d.sfsL <- get_two_dimensionalSFSlist(dataObject = dataObject,n1Min = 1,n1Max = dataObject$sample.size,monomorphic = monomorphic,fixedDerived = fixedDerived) # this function is SLOW, and I do not like it....
+# one needs to determine the 2dSFS, n1,k1,n2,k2. As is, this iterates over all polymorphic sites by n1 class, than suims up the 2dSFS over n1 sites. 
+
+# so this does not scale well with increased chromosome length. I am working on using the downsampled or the hypergeometric projected 1d-SFS, but haven't quite solved it yet.
+
 # calculate phiN
 # could try rewritting as mapply or mcmapply process.
 # arma::cube is returned to R as a 3D-array. subset[n1,k1,n1matrix]
@@ -75,7 +79,7 @@ nkMatrixdp <- getSfs_perN_from_downprojectFullSFS(sfs = dataObject$sfs,scaled = 
 # down sample from the full sample size genotype array
 nkMatrixds <- getSfs_perN_from_downsampleFullSFS(dataObject = dataObject,monomorphic = monomorphic,fixedDerived = fixedDerived)
 
-alphaDres <- 4 # a control switch to set # of alphaD gridpoints, 1,2 or 4... 102,202,402 length of log10_alphad
+alphaDres <- 4 # a control switch to set n. of alphaD gridpoints, 1,2 or 4... 102,202,402 length of log10_alphad
 # note still pass param beta, even though vy and kim define model with beta=1. this is to allow easy upgrade of this if we want.
 log10_alphad <- make_log10alphad(minalpha=0.001,maxalpha=10,length.out = alphaDres*100+2)
 phiSTable <- makePhiSTable(nSam = dataObject$sample.size,testN1s = n1range,ptable = nkMatrixds,alphad = 10^log10_alphad,beta = 1)
