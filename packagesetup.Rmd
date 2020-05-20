@@ -111,6 +111,7 @@ whether to use all sites or only polymorphic sites (and within that the use of f
 ```{r Vy + Kim generation of equilibirum SFS, fig.height= 5, fig.width= 15}
 monomorphic=FALSE
 fixedDerived=FALSE
+n_low_cutoff = 0.2
 #load("data/example.data.rda")
 #dataObject <- example.data
 dataObject <- append(dataObject, get_sfsDcountList(dataObject, monomorphic=monomorphic , fixedDerived = fixedDerived))
@@ -118,23 +119,27 @@ if(monomorphic==FALSE | fixedDerived==FALSE) {
   dataObject <- filterDataObject(dataObject,monomorphic=monomorphic , fixedDerived = fixedDerived)
 }
 dataObject[["mutation_rate"]] <- theta_from_pi(dataObject$derived_allele_counts,nSam = dataObject$sample.size, locusLength = dataObject$locusLength)
-n1Min <- round(dataObject$sample.size*0.20)
-n1Max <- round(dataObject$sample.size*0.80)
+n1Min <- round(dataObject$sample.size*n_low_cutoff)
+n1Max <- round(dataObject$sample.size*(1-n_low_cutoff))
 n1range <- n1Min:n1Max
-
-
 binomial.coeffs <- CbTable(dataObject$sample.size)
 subP <- subPop_freqSpec(binomial.coeffs,dataObject$sample.size)
 pHomo <- calc_pHomo(binomial.coeffs,dataObject$sample.size,n1Max,n1Min)
 ## can get the same thing as.....
 subP_2 <- Matrix::Matrix(do.call(rbind,lapply(0:dataObject$sample.size,function(x) {sfs <- numeric(dataObject$sample.size+1); if(x > 1) {sfs[1:x] <-  1/(0:(x-1))}; sfs[1] <- 0; sfs })),sparse = TRUE)
-# these are very close in values, down to 2e-7 at WORST.
-unlist(lapply(1:(dataObject$sample.size+1), function(x) all.equal(subP[x,],subP_2[x,],tolerance = 2e-7)))
+# these are very close in values, down to 5e-7 at WORST.
+unlist(lapply(1:(dataObject$sample.size+1), function(x) all.equal(subP[x,],subP_2[x,],tolerance = 5e-7)))
 
 
 ## conditional 2d-SFS
 # from observed
-obs.cond.2d.sfsL <- get_two_dimensionalSFSlist(dataObject = dataObject,n1Min = 1,n1Max = dataObject$sample.size,monomorphic = monomorphic,fixedDerived = fixedDerived) # this function is SLOW
+#obs.cond.2d.sfsL <- get_two_dimensionalSFSlist(dataObject = dataObject,n1Min = 1,n1Max = dataObject$sample.size,monomorphic = monomorphic,fixedDerived = fixedDerived) # this function is SLOW
+## new attempt
+
+test_list <- mclapply(1:100,function(x) get_two_dimensionalSFS_C(genotypes = dataObject$genotypes,n1 = x,nSam = dataObject$sample.size,n_idxs = which(dataObject$derived_allele_counts==x),monomorphic = "FALSE",fixedDerived = "FALSE"),mc.cores = 10)
+
+test_list2 <- mclapply(1:100,function(x) get_two_dimensionalSFS_C(genotypes = dataObject$genotypes,n1 = x,nSam = dataObject$sample.size,n_idxs = sort(sample(which(dataObject$derived_allele_counts==x),size = 100,replace = FALSE)),monomorphic = "FALSE",fixedDerived = "FALSE"),mc.cores = 10)
+
 # calculate phiN
 # could try rewritting as mapply or mcmapply process.
 obsPhiNTable <- listMatricesToArmaCube(sfslist = obs.cond.2d.sfsL,n1Range = n1range,nSam = dataObject$sample.size)
