@@ -29,7 +29,7 @@ Rcpp::sourceCpp('src/rcpp_sfs_functions.cpp')
 Rcpp::sourceCpp('src/armaCubeFields.cpp')
 Rcpp::sourceCpp('src/MLconfig_cpp_functions.cpp')
 Rcpp::sourceCpp('src/ML_compute_cpp.cpp')
-
+Rcpp::sourceCpp('src/get_twoDSfsList_c.cpp')
 
 # some data, more files in 'inst/extdata'
 dataObject <- get.simulated.data("inst/extdata/msms.selection.100chr.s05.b07_50mb.txt", "msms")
