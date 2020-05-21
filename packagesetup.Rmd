@@ -313,3 +313,13 @@ for(j in seq_along(k2)){
 }
 ```
 
+
+### Integrating Christians SweepFinder code.
+```{r}
+# create inputDataFrame
+# example from Chris
+inputDataFrame = fread(input = "~/Dropbox/aSweep/aSweep/Data/Anatolia_Neolithic_ancientStudy_arch_6.FreqFile")
+# position x (allele count) n (sample size) folded ()
+```
+
+
